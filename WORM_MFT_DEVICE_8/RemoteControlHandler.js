@@ -14,6 +14,7 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank , cc_list, midi_
       // this.remoteControlsBank.getParameter (i).markInterested ();
    var callback_func = makeIndexedFunction(i, doObject(this, this.remoteUpdate));
    this.remoteControlsBank.getParameter(i).value().addValueObserver(128,callback_func);
+   println("created callback funcs: + " + i);
    }
 }
 
@@ -25,13 +26,28 @@ RemoteControlHandler.prototype.setIndication = function (enable)
    }
 }
 
+RemoteControlHandler.prototype.updateLed = function(){
+   var i;
+   for (i = 0; i < this.remoteControlsBank.getParameterCount (); i++){
+      var value = this.remoteControlsBank.getParameter (i).value();
+      println('updateLED: ' + i + ': ' + value );
+
+
+   //    var status = 0xB0;
+   //   var data1 = cc;
+   //   var data2 = value;
+   //this.hardware.sendMidi(status, data1, data2);
+  }
+
+}
 RemoteControlHandler.prototype.remoteUpdate = function(index, value){
    var cc = this.cc_list[index];
 
-   var status = 0xB0;
+   var status = 0xB0 + (this.midi_channel-1);
    var data1 = cc;
    var data2 = value;
    this.hardware.sendMidi(status, data1, data2);
+   
    println('remote update: index: ' + index + ": value: " + value);
 }
 

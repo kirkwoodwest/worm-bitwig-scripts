@@ -172,6 +172,9 @@ function onSysex0(data) {
 
 function flush() {
    // TODO: Flush any output to your controller here.
+  // for(i=0; i< remoteControlHandlers.length; i++){
+  //    remoteControlHandlers[i].updateLed();
+  // }
 }
 
 function exit() {

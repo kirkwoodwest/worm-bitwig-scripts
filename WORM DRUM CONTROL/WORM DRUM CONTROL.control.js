@@ -110,14 +110,14 @@ function init() {
    //cursorDevice3 = cursorTrack3.createCursorDevice("CURSOR_DEVICE_3", "Cursor Device 3", 0, follow_mode);
    //cursorDevice4 = cursorTrack4.createCursorDevice("CURSOR_DEVICE_4", "Cursor Device 4", 0, follow_mode);
    
-   remoteHandler1  = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d1', 4, ''), DRUM_COL_1, BCR_1_CHANNEL, hardware1, 0);
-   remoteHandler2 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d2', 4, ''), DRUM_COL_2, BCR_1_CHANNEL, hardware1, 1);
-   remoteHandler3 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d3', 4, ''), DRUM_COL_3, BCR_1_CHANNEL, hardware1, 2);
-   remoteHandler4 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d4', 4, ''), DRUM_COL_4, BCR_1_CHANNEL, hardware1, 3);
-   remoteHandler5 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d5', 4, ''), DRUM_COL_5, BCR_1_CHANNEL, hardware1, 4);
-   remoteHandler6 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d6', 4, ''), DRUM_COL_6, BCR_1_CHANNEL, hardware1, 5);
-   remoteHandler7 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d7', 4, ''), DRUM_COL_7, BCR_1_CHANNEL, hardware1, 6);
-   remoteHandler8 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d8', 4, ''), DRUM_COL_8, BCR_1_CHANNEL, hardware1, 7);
+   remoteHandler1  = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d1', 8, ''), DRUM_COL_1, BCR_1_CHANNEL, hardware1, 0);
+   remoteHandler2 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d2', 8, ''), DRUM_COL_2, BCR_1_CHANNEL, hardware1, 1);
+   remoteHandler3 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d3', 8, ''), DRUM_COL_3, BCR_1_CHANNEL, hardware1, 2);
+   remoteHandler4 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d4', 8, ''), DRUM_COL_4, BCR_1_CHANNEL, hardware1, 3);
+   remoteHandler5 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d5', 8, ''), DRUM_COL_5, BCR_1_CHANNEL, hardware1, 4);
+   remoteHandler6 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d6', 8, ''), DRUM_COL_6, BCR_1_CHANNEL, hardware1, 5);
+   remoteHandler7 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d7', 8, ''), DRUM_COL_7, BCR_1_CHANNEL, hardware1, 6);
+   remoteHandler8 = new RemoteControlHandler(cursorDevice1, cursorDevice1.createCursorRemoteControlsPage('d8', 8, ''), DRUM_COL_8, BCR_1_CHANNEL, hardware1, 7);
    remoteControlHandlers1 = [remoteHandler1, remoteHandler2, remoteHandler3, remoteHandler4, remoteHandler5, remoteHandler6, remoteHandler7, remoteHandler8];
    remoteControlHandlers2 = [];
    /*
