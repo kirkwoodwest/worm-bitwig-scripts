@@ -1,6 +1,6 @@
 loadAPI(11);
 load("MidiFighterTwister.js");
-load('../Worm Control Scripts/WORM_UTILS/WORM_UTIL.js')
+load('../WORM_UTILS/WORM_UTIL.js')
 // Remove this if you want to be able to use deprecated methods without causing script to stop.
 // This is useful during development.
 host.setShouldFailOnDeprecatedUse(true);
@@ -36,27 +36,46 @@ var trackBank = null
 var slotBank = null
 var initialized = false
 
+
 var launch = null
 
 var mft_color_values = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
 var mft_knob_values = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+
+var settingCCBaseNumber = null;
+var CCBase = 0; //CC Base Value will go up + 16 from ehre.
 
 //Settings
 editModeEnum = ['EDIT','LOCKED'];
 editModeDefault = editModeEnum[1];
 var EditColorsEnabled = false;
 
-function init() {
+TargetTrackNameSetting = null;
+TargetTrackName = null;
 
+ChannelFindIndex = 0;   //Index to find the target channel.
+
+function init() {
+   prefs = host.getPreferences();
+   settingCCBaseNumber = prefs.getNumberSetting('Base CC', "Settings", 0,127,1,'', CCBase);
+   settingCCBaseNumber.addValueObserver(127,ccBaseNumberChanged);
+
+   blah = floatToRange(settingCCBaseNumber.get());
+   
+   println("midifighter color demo initialized!:" + blah);
    docstate = host.getDocumentState();
-   docstate.getStringSetting('Target', 'Target Track Name',8, 'MFT');
-   launch = docstate.getSignalSetting('Launch','Target Track Name', "READ DATA");
+   
+   TargetTrackNameSetting = docstate.getStringSetting('Target', 'Color Track Name',8, 'MFT');
+   TargetTrackNameSetting.addValueObserver(settingTargetTrackNameChanged);
+   TargetTrackName = TargetTrackNameSetting.get();
+
+   launch = docstate.getSignalSetting('Reset','Target Track Name', "Reset");
 
    editMode = docstate.getEnumSetting('Edit Mode','Edit Mode', editModeEnum, editModeDefault);
    editMode.addValueObserver(mftEnableEdit);
 
 
-   launch.addSignalObserver (updateControllerLED);
+   launch.addSignalObserver (doAction);
    var input =  host.getMidiInPort(0);
    var output = host.getMidiOutPort(0);
 
@@ -67,29 +86,23 @@ function init() {
    cursorClip = host.createLauncherCursorClip(1,1)
 
    
-   cursorTrack = host.createCursorTrack("MAIN_CURSOR_TRACK", "Main 1", 0,0, false);
+   cursorTrack = host.createCursorTrack("MAIN_CURSOR_TRACK", "Main 1", 0,0, true);
    cursorClip = cursorTrack.createLauncherCursorClip('CURSOR_CLIP_1', 'Cursor Clip 1',1,1);
    //cursorDevice = cursorClip.createCursorDevice();
 
    trackBank = host.createTrackBank(1, 0, 10);
-
+   trackBank.scrollPosition().markInterested();
    var track = trackBank.getItemAt(0);
-   var p = track.pan();
-   p.markInterested();
-   p.setIndication(true);
-
-   p = track.volume();
-   p.markInterested();
-   p.setIndication(true);
 
    p = track.name();
+   p.markInterested();
    //get slots
 
    slotBank = track.clipLauncherSlotBank();
    //slotBank.markInterested();
    slotBank.setIndication(true)
 
-   host.scheduleTask(doInit, 4000);
+   host.scheduleTask(doInit, 100);
    name = slotBank.getItemAt(0).name();
    name.markInterested();
 
@@ -106,9 +119,33 @@ function doInit(){
    println("doinit()")
    //slotBank.getItemAt(0).name().setValue('dfdsfs');
    //cursorTrack.selectFirstChild();
-   var channel = trackBank.getItemAt(0)
-   cursorTrack.selectChannel(channel);
+   findChannel();
 }
+
+function doAction(){
+   ChannelFindIndex = -1;
+   findChannel()
+}
+
+
+function findChannel(){
+  
+   var channel = trackBank.getItemAt(0)
+   var name = channel.name().get();
+
+   if (name != TargetTrackName) {
+      ChannelFindIndex++;
+      trackBank.scrollPosition().set(ChannelFindIndex);
+      host.scheduleTask(findChannel, 100)
+   } 
+}
+
+
+// Changes the track we are targeting.
+function settingTargetTrackNameChanged(value){
+   TargetTrackName = value;
+}
+
 // Called when a short MIDI message is received on MIDI input port 0.
 function onMidi0(status, data1, data2) {
    // TODO: Implement your MIDI input handling code here.
@@ -218,7 +255,7 @@ function dataToString(){
       }
    }
    return string;
-}
+}updateControllerLED
 
 
 
@@ -301,8 +338,12 @@ function controllerLEDTest(){
      }
    }
    */
-  }
+}
+function ccBaseNumberChanged(value) {
 
+   println('ccBaseNumberChanged:' + value);
+  
+}
 function flush() {
    updateControllerLED();
   

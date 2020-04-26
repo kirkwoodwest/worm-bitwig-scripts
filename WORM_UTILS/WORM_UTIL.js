@@ -17,3 +17,8 @@ function doObject (object, f)
         f.apply (object, arguments);
     };
 }
+
+function floatToRange(float, range){
+  if (range == null) range = 127;
+  return Math.round(float*range);
+}
