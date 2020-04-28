@@ -37,45 +37,67 @@ var slotBank = null
 var initialized = false
 
 
-var launch = null
 
-var mft_color_values = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-var mft_knob_values = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+
+var MFT_EMPTYCOLOR_TABLE = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+var mft_color_values = MFT_EMPTYCOLOR_TABLE;
+var mft_knob_values = MFT_EMPTYCOLOR_TABLE;
+
+/*
+Constants
+*/
+const INIT_WAIT_TIME = 2000;   //Wait time until init.
+const CHANNEL_SEARCH_TIME = 200; //Wait time between channel searches.
+const RESTART_DOCUMENT_CHANNEL_SEARCH_TIME = 1000; //Wait time between channel searches.
+
+/*
+SETTINGS
+*/
+const SETTINGS_COLOR_TRACK_NAME = 'Color Track Name';
+
+var settingBankSize = null;
+var LauncherBankSize = 128;
 
 var settingCCBaseNumber = null;
-var CCBase = 0; //CC Base Value will go up + 16 from ehre.
+var CCBase = 0; //CC Base Value will go up + 16 from there.
 
-//Settings
-editModeEnum = ['EDIT','LOCKED'];
-editModeDefault = editModeEnum[1];
-var EditColorsEnabled = false;
+var settingLaunch = null //Launch Button
 
 TargetTrackNameSetting = null;
 TargetTrackName = null;
 
-ChannelFindIndex = 0;   //Index to find the target channel.
+var EditColorsEnabled = false; //Flag to determine if we are editing colors or just twisting knobs
+
+var ChannelFindIndex = -1; //Index to find the target channel.
+var Playing_slot_index = 0; //Current playing slot in the MFT channel
 
 function init() {
    prefs = host.getPreferences();
    settingCCBaseNumber = prefs.getNumberSetting('Base CC', "Settings", 0,127,1,'', CCBase);
    settingCCBaseNumber.addValueObserver(127,ccBaseNumberChanged);
-
-   blah = floatToRange(settingCCBaseNumber.get());
+   CCBase = floatToRange(settingCCBaseNumber.get());
    
-   println("midifighter color demo initialized!:" + blah);
+   settingBankSize = prefs.getNumberSetting('Launcher Bank Size', "Settings", 0,1024,16,'', LauncherBankSize);
+   settingBankSize.addValueObserver(127,settingBankSizeChanged);
+   LauncherBankSize = floatToRange(settingBankSize.get(),1024);
+   
+   
+   println("midifighter color demo initialized!:" + CCBase);
    docstate = host.getDocumentState();
    
-   TargetTrackNameSetting = docstate.getStringSetting('Target', 'Color Track Name',8, 'MFT');
+   TargetTrackNameSetting = docstate.getStringSetting('Target', SETTINGS_COLOR_TRACK_NAME,8, 'MFT');
    TargetTrackNameSetting.addValueObserver(settingTargetTrackNameChanged);
    TargetTrackName = TargetTrackNameSetting.get();
 
-   launch = docstate.getSignalSetting('Reset','Target Track Name', "Reset");
-
-   editMode = docstate.getEnumSetting('Edit Mode','Edit Mode', editModeEnum, editModeDefault);
-   editMode.addValueObserver(mftEnableEdit);
+   settingLaunch = docstate.getSignalSetting('Reset',SETTINGS_COLOR_TRACK_NAME, "Reset");
 
 
-   launch.addSignalObserver (doAction);
+   settingLaunch.addSignalObserver(doAction);
+
+   //Observe if the project name changes...
+   app = host.createApplication();
+   app.projectName().addValueObserver(projectNameChanged);
+
    var input =  host.getMidiInPort(0);
    var output = host.getMidiOutPort(0);
 
@@ -84,39 +106,62 @@ function init() {
    hardware = new MidiFighterTwister(input, output, onMidi0);
 
    cursorClip = host.createLauncherCursorClip(1,1)
-
    
    cursorTrack = host.createCursorTrack("MAIN_CURSOR_TRACK", "Main 1", 0,0, true);
    cursorClip = cursorTrack.createLauncherCursorClip('CURSOR_CLIP_1', 'Cursor Clip 1',1,1);
-   //cursorDevice = cursorClip.createCursorDevice();
+   cursorTrack.isPinned().markInterested();
 
-   trackBank = host.createTrackBank(1, 0, 10);
+   trackBank = host.createTrackBank(1, 0, LauncherBankSize);
    trackBank.scrollPosition().markInterested();
+   trackBank.itemCount().markInterested();
+
    var track = trackBank.getItemAt(0);
 
    p = track.name();
    p.markInterested();
-   //get slots
 
+   //Get Slots
    slotBank = track.clipLauncherSlotBank();
-   //slotBank.markInterested();
+   slotBank.addIsPlayingObserver(slotPlaying);
    slotBank.setIndication(true)
 
-   host.scheduleTask(doInit, 100);
+   //
+   host.scheduleTask(doInit, INIT_WAIT_TIME);
+
+   for (i=0;i <this.slotBank.getSizeOfBank(); i++){
+      var slot = this.slotBank.getItemAt(i);
+
+      p = slot.name();
+      p.markInterested();
+   }
    name = slotBank.getItemAt(0).name();
    name.markInterested();
 
    // TODO: Perform further initialization here.
    println("midifighter color demo initialized!");
    //println("midifighter color demo initialized!" + slotBank.getItemAt(0)   );
+   
+   //nal String label, final String category, final int numChars, final String initialText))
+}
 
+/*
+Settings Callbacks
+*/
 
-      //nal String label, final String category, final int numChars, final String initialText))
+/**
+ * Called when the base has changed via settings...
+ * @param {int} value 
+ */
+function ccBaseNumberChanged(value) {
+   CCBase = floatToRange(settingCCBaseNumber.get());
+   println('ccBaseNumberChanged:' + value);
+  
 }
 
 function doInit(){
    initialized = true
    println("doinit()")
+   ChannelFindIndex = -1;
    //slotBank.getItemAt(0).name().setValue('dfdsfs');
    //cursorTrack.selectFirstChild();
    findChannel();
@@ -127,25 +172,69 @@ function doAction(){
    findChannel()
 }
 
+function slotPlaying(slot_index, is_playing){
+   println("slot playing" + slot_index + " - " + is_playing);
+   if (is_playing == true){
+      
+      Playing_slot_index = slot_index;
+      readData();
+   }
+   if (is_playing == false && Playing_slot_index == slot_index){
+      Playing_slot_index = -1;
+   }
+}
 
+function projectNameChanged(){
+   ChannelFindIndex = -1;
+   host.scheduleTask(findChannel, RESTART_DOCUMENT_CHANNEL_SEARCH_TIME);
+   println('projectNameChanged');
+}
+
+/**
+ * Finds the channel for the trackbank and cursor track. Gives up if it reaches the end of the channel index.
+ */
 function findChannel(){
-  
+
+   //Get current channel for the trackbank
    var channel = trackBank.getItemAt(0)
    var name = channel.name().get();
 
-   if (name != TargetTrackName) {
+   // println("name: " + name);
+   // println("findchannel: " + TargetTrackName);
+   // println("ChannelFindIndex: " + ChannelFindIndex);
+   // println("channel_count: " + trackBank.itemCount().get());
+   // println('\n');
+   
+   //attempt to match with the track name...
+   if (name == TargetTrackName) {
+      //Matched Select the channel and pin it.
+      cursorTrack.selectChannel(channel);
+      cursorTrack.isPinned().set(true);
+
+   } else {
+      //Keep searching, increment index and move the position and attempt to refind.
       ChannelFindIndex++;
       trackBank.scrollPosition().set(ChannelFindIndex);
-      host.scheduleTask(findChannel, 100)
-   } 
+      channel_count = trackBank.itemCount().get();
+
+      if (ChannelFindIndex <= channel_count) {
+         //Only attempt again if our index doesn't exceed the channel count...
+         host.scheduleTask(findChannel, CHANNEL_SEARCH_TIME + (Math.random()*200));
+      }
+   }
 }
 
 
-// Changes the track we are targeting.
+
 function settingTargetTrackNameChanged(value){
    TargetTrackName = value;
 }
 
+function settingBankSizeChanged(value){
+   LauncherBankSize = value;
+}
+
+NoteOnStack = 0;
 // Called when a short MIDI message is received on MIDI input port 0.
 function onMidi0(status, data1, data2) {
    // TODO: Implement your MIDI input handling code here.
@@ -153,19 +242,25 @@ function onMidi0(status, data1, data2) {
    debug_midi(status, data1, data2, "midiHandler: Message not Handled", true)
 
    if(isNoteOn(status)){
-      mftEnableEditManual(true);
+      if(NoteOnStack==1) randomizeColors();
+      NoteOnStack++;
+      mftEnableEdit(true);
       return;
    } else if (isNoteOff(status)) {
-      mftEnableEditManual(false);
+      mftEnableEdit(false);
+      NoteOnStack--;
       return;
    }
 
-   //Knob Values...
+   //Store Knob Values...
+   cc = parseInt(data1);
+   target_cc = cc - CCBase;
+
    if (EditColorsEnabled) {
       hardware.sendMidi(status+1, data1, data2);
-      mft_color_values[data1] = data2;
+      mft_color_values[target_cc] = data2;
    } else {
-      mft_knob_values[data1] = data2;
+      mft_knob_values[target_cc] = data2;
    }
       
       /*
@@ -201,22 +296,54 @@ function onMidi0(status, data1, data2) {
 
 }
 
-function writeData(){
-  string = dataToString();
-  cursorClip.setName(string);
-}
+function readData(){
+   var track = trackBank.getItemAt(0);
+   var launcherslotBank = track.clipLauncherSlotBank();
+   var slot = launcherslotBank.getItemAt(Playing_slot_index)
+   name = slot.name().get();
+   println('readData: name-' + name +'-')
+   colors_array = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+   if (name != '') colors_array = name.split(',');
 
-function mftEnableEdit(value){
-   if (editModeEnum[0] == value) {
-      EditColorsEnabled = true;
-   } else {
-      EditColorsEnabled = false;
+   for(i=0;i<colors_array.length;i++){
+      var channel = 1;
+      var status = 0xB0 | channel;
+      var data1 = (i+CCBase).toString(16)
+
+      var val = colors_array[i];
+      var data2 = parseInt(val).toString(16)
+      
+      hardware.sendMidi(status, i+CCBase, val);      
    }
+
+   mft_color_values = colors_array;
+   string = dataToString();
+
+   launcherslotBank.showInEditor(Playing_slot_index);
+   cursorClip.setName(string);
+
 }
 
-function mftEnableEditManual(isEnabled){
+function writeData(){
 
+   //Turn Data into string
+   string = dataToString();
+   
+   //Make sure we are playing a slot...
+   if(Playing_slot_index == -1) return;
 
+   //Complicated process to write the data to the clip.
+   //Get track out of track bank, get launcherslot bank, 
+   //then get slot, set cursor to that slot so we can rename
+   //Move the cursor to the slot and set the name.
+   var track = trackBank.getItemAt(0);
+   var launcherslotBank = track.clipLauncherSlotBank();
+   var slot = launcherslotBank.getItemAt(Playing_slot_index)
+   launcherslotBank.showInEditor(Playing_slot_index);
+   cursorClip.setName(string);
+}
+
+function mftEnableEdit(isEnabled){
    if(isEnabled == true) {
       //Store off current knob positions
       //Get colors from clip and send to twister knobs
@@ -224,6 +351,7 @@ function mftEnableEditManual(isEnabled){
    } else {
       //Restore Knob positions...
       restoreKnobCCValues();
+      writeData();
    }
    EditColorsEnabled = isEnabled;
 }
@@ -240,8 +368,7 @@ function restoreKnobValues(value_array) {
    var channel = 0;
    var status = 0xB0 | channel;
    for(var cc = 0; cc<value_array.length;cc++){
-      hardware.sendMidi(status, cc, value_array[cc]);
-      println(' value_array[cc]' +  value_array[cc]);
+      hardware.sendMidi(status, cc+CCBase, value_array[cc]);
    }
 }
 
@@ -255,98 +382,24 @@ function dataToString(){
       }
    }
    return string;
-}updateControllerLED
+}
 
-
-
-function updateControllerLED(){
-   writeData();
-
-   /*
-   //  controllerLEDTest();
-
-   println("Item: " +  slotBank.getItemAt(0).name().getValue());
-   var string = ''
-   for(i=0;i<16;i++){
-      var val = Math.floor(Math.random() * 16)
-      var hex = val.toString(16)
-      var channel = 1;
-      var status = 0xB0 | channel;
-      string = string + ',' + hex;
+function randomizeColors() {
+   for (i=0;i<mft_color_values.length;i++) {
+      mft_color_values[i] = Math.floor(Math.random() *127);
+ 
+ 
    }
 
-   var launcherslot = cursorClip.clipLauncherSlot();
-   println('name:' + launcherslot.name().getValue())
-
-   var bank = Math.floor(Math.random() * 5);
-   // slotBank.getItemAt(0).select(bank);
-   println("Item: " +  slotBank.getItemAt(0).name().getValue());
-
-   values = slotBank.getItemAt(0).name().getValue();
-   values_array = values.split(',');
-   for(i=0;i<values_array.length;i++){ 
-      value = values_array[i];
-      v = '0x' + value; 
-      v = parseInt(v);
-      
-      if (v > MFT_COLOR_TABLE.length) { v = 0;}
-      
-      color = MFT_COLOR_TABLE[v];
-      hardware.sendMidi(status, i, color);
+   var channel = 0;
+   var status = 0xB0 | channel;
+   for(var cc = 0; cc<value_array.length;cc++){
+      hardware.sendMidi(status, cc+CCBase, value_array[cc]);
    }
-*/
 }
 
 
-function controllerLEDTest(){
-   // TODO: Flush any output to your controller here.
-   println('yo!!')
-   println("Item: " +  slotBank.getItemAt(0).name().getValue());
-   var string = ''
-   for(i=0;i<16;i++){
-      var val = Math.floor(Math.random() * 16)
-      var hex = val.toString(16)
-      var channel = 1;
-      var status = 0xB0 | channel;
-      string = string + ',' + hex;
-  
-   }
-   
-   //var name = cursorClip.name().get();
-   var launcherslot = cursorClip.clipLauncherSlot();
-   println('name:' + launcherslot.name().getValue())
-  
-  // println("Item: " +  slotBank.getItemAt(0).name().getValue());
-   
-  // h//ost.getMidiOutPort(0).sendMidi(0xB0 | channel, controller, value);
-  // hardware.sendMidi(status, 2, val);
-  /*
-   if (initialized ) {
-      var bank = Math.floor(Math.random() * 5);
-     // slotBank.getItemAt(0).select(bank);
-     println("Item: " +  slotBank.getItemAt(0).name().getValue());
-  
-     values = slotBank.getItemAt(0).name().getValue();
-     values_array = values.split(',');
-     for(i=0;i<values_array.length;i++){ 
-      value = values_array[i];
-      v = '0x' + value; 
-      v = parseInt(v);
-      if (v > MFT_COLOR_TABLE.length) { v = 0;}
-      color = MFT_COLOR_TABLE[v];
-     // hardware.sendMidi(status, i, color);
-     }
-   }
-   */
-}
-function ccBaseNumberChanged(value) {
-
-   println('ccBaseNumberChanged:' + value);
-  
-}
 function flush() {
-   updateControllerLED();
-  
 }
 
 function exit() {
