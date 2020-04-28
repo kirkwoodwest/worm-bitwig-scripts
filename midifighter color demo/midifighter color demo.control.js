@@ -36,7 +36,7 @@ var trackBank = null
 var slotBank = null
 var initialized = false
 
-
+var ChannelInitialized = false;
 
 
 var MFT_EMPTYCOLOR_TABLE = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
@@ -72,22 +72,7 @@ var ChannelFindIndex = -1; //Index to find the target channel.
 var Playing_slot_index = 0; //Current playing slot in the MFT channel
 
 function init() {
-   prefs = host.getPreferences();
-   settingCCBaseNumber = prefs.getNumberSetting('Base CC', "Settings", 0,127,1,'', CCBase);
-   settingCCBaseNumber.addValueObserver(127,ccBaseNumberChanged);
-   CCBase = floatToRange(settingCCBaseNumber.get());
-   
-   settingBankSize = prefs.getNumberSetting('Launcher Bank Size', "Settings", 0,1024,16,'', LauncherBankSize);
-   settingBankSize.addValueObserver(127,settingBankSizeChanged);
-   LauncherBankSize = floatToRange(settingBankSize.get(),1024);
-   
-   
-   println("midifighter color demo initialized!:" + CCBase);
-   docstate = host.getDocumentState();
-   
-   TargetTrackNameSetting = docstate.getStringSetting('Target', SETTINGS_COLOR_TRACK_NAME,8, 'MFT');
-   TargetTrackNameSetting.addValueObserver(settingTargetTrackNameChanged);
-   TargetTrackName = TargetTrackNameSetting.get();
+ 
 
    settingLaunch = docstate.getSignalSetting('Reset',SETTINGS_COLOR_TRACK_NAME, "Reset");
 
@@ -137,11 +122,7 @@ function init() {
    name = slotBank.getItemAt(0).name();
    name.markInterested();
 
-   // TODO: Perform further initialization here.
-   println("midifighter color demo initialized!");
-   //println("midifighter color demo initialized!" + slotBank.getItemAt(0)   );
-   
-   //nal String label, final String category, final int numChars, final String initialText))
+  
 }
 
 /*
@@ -155,27 +136,19 @@ Settings Callbacks
 function ccBaseNumberChanged(value) {
    CCBase = floatToRange(settingCCBaseNumber.get());
    println('ccBaseNumberChanged:' + value);
-  
 }
 
 function doInit(){
    initialized = true
-   println("doinit()")
-   ChannelFindIndex = -1;
-   //slotBank.getItemAt(0).name().setValue('dfdsfs');
-   //cursorTrack.selectFirstChild();
    findChannel();
 }
 
 function doAction(){
-   ChannelFindIndex = -1;
    findChannel()
 }
 
 function slotPlaying(slot_index, is_playing){
-   println("slot playing" + slot_index + " - " + is_playing);
    if (is_playing == true){
-      
       Playing_slot_index = slot_index;
       readData();
    }
@@ -185,15 +158,20 @@ function slotPlaying(slot_index, is_playing){
 }
 
 function projectNameChanged(){
-   ChannelFindIndex = -1;
    host.scheduleTask(findChannel, RESTART_DOCUMENT_CHANNEL_SEARCH_TIME);
-   println('projectNameChanged');
+}
+
+
+function findChannel(){
+   ChannelFindIndex = -1;
+   ChannelInitialized = false;
+   _findChannel();
 }
 
 /**
  * Finds the channel for the trackbank and cursor track. Gives up if it reaches the end of the channel index.
  */
-function findChannel(){
+function _findChannel(){
 
    //Get current channel for the trackbank
    var channel = trackBank.getItemAt(0)
@@ -210,7 +188,7 @@ function findChannel(){
       //Matched Select the channel and pin it.
       cursorTrack.selectChannel(channel);
       cursorTrack.isPinned().set(true);
-
+      ChannelInitialized = true;
    } else {
       //Keep searching, increment index and move the position and attempt to refind.
       ChannelFindIndex++;
@@ -219,7 +197,7 @@ function findChannel(){
 
       if (ChannelFindIndex <= channel_count) {
          //Only attempt again if our index doesn't exceed the channel count...
-         host.scheduleTask(findChannel, CHANNEL_SEARCH_TIME + (Math.random()*200));
+         host.scheduleTask(_findChannel, CHANNEL_SEARCH_TIME + (Math.random()*200));
       }
    }
 }
@@ -247,7 +225,7 @@ function onMidi0(status, data1, data2) {
       mftEnableEdit(true);
       return;
    } else if (isNoteOff(status)) {
-      mftEnableEdit(false);
+      if(NoteOnStack==1) mftEnableEdit(false);
       NoteOnStack--;
       return;
    }
@@ -297,11 +275,17 @@ function onMidi0(status, data1, data2) {
 }
 
 function readData(){
+   if (ChannelInitialized == false || Playing_slot_index == -1 ){ 
+      host.scheduleTask(readData, CHANNEL_SEARCH_TIME); 
+      return;
+   }
    var track = trackBank.getItemAt(0);
+
    var launcherslotBank = track.clipLauncherSlotBank();
    var slot = launcherslotBank.getItemAt(Playing_slot_index)
+
    name = slot.name().get();
-   println('readData: name-' + name +'-')
+   
    colors_array = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
    if (name != '') colors_array = name.split(',');
 
@@ -387,15 +371,15 @@ function dataToString(){
 function randomizeColors() {
    for (i=0;i<mft_color_values.length;i++) {
       mft_color_values[i] = Math.floor(Math.random() *127);
- 
- 
    }
 
-   var channel = 0;
+   var channel = 1;
    var status = 0xB0 | channel;
-   for(var cc = 0; cc<value_array.length;cc++){
-      hardware.sendMidi(status, cc+CCBase, value_array[cc]);
+   for(var cc = 0; cc<mft_color_values.length;cc++){
+      hardware.sendMidi(status, cc+CCBase, mft_color_values[cc]);
    }
+
+   writeData();
 }
 
 

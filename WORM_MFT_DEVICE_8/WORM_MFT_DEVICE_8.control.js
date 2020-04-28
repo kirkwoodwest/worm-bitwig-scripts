@@ -98,8 +98,14 @@ function init() {
    //Cursor Device
    follow_mode = CursorDeviceFollowMode.FIRST_DEVICE;
 
+   knoboffset = 16;
    remoteKnobsTop = [KNOB_A_1, KNOB_A_2, KNOB_A_3, KNOB_A_4, KNOB_A_5, KNOB_A_6, KNOB_A_7, KNOB_A_8];
    remoteKnobsBottom = [KNOB_A_9, KNOB_A_10, KNOB_A_11, KNOB_A_12, KNOB_A_13, KNOB_A_14, KNOB_A_15, KNOB_A_16];
+
+   for(i=0;i<remoteKnobsTop.length;i++){
+      remoteKnobsTop[i] = remoteKnobsTop[i] + knoboffset;
+      remoteKnobsBottom[i] = remoteKnobsBottom[i] + knoboffset;
+   }
 
    MFT_1_CHANNEL = 1;
    MFT_2_CHANNEL = 11;
