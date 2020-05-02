@@ -58,7 +58,7 @@ RemoteControlHandler.prototype.handleMidi = function (status, data1, data2)
    println("status(status)" + status)
    if ( MIDIChannel(status) +1 == this.midi_channel) {
       if (isChannelController(status)) {
-         index = this.cc_translation[data1];
+         index = this.cc_translation[data1 -];
          if (index != undefined) {
             this.remoteControlsBank.getParameter(index).set(data2, 128); 
             return true;

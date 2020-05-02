@@ -15,14 +15,15 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank , cc_list, midi_
       this.cc_values[cc_list[i]] = -1;
    }
 
-
-   
    this.remoteControlsBank.selectedPageIndex().markInterested();
+   this.remoteControlsBank.pageCount().addValueObserver(doObject(this, this.resetPage),-1);
+   println('page count' + this.remoteControlsBank.pageCount().get());
 
    var i;
    for (i = 0; i < this.remoteControlsBank.getParameterCount(); i++) {
       var callback_func = makeIndexedFunction(i, doObject(this, this.remoteUpdate));
       this.remoteControlsBank.getParameter(i).value().addValueObserver(128,callback_func);
+      this.remoteControlsBank.getParameter(i).setIndication(true);
    }
 }
 
@@ -44,12 +45,14 @@ RemoteControlHandler.prototype.remoteUpdate = function(index, value){
    return;
 
    if(this.cc_values[cc] == value){ 
-      println('this.cc_values[cc] == value) ' + index + ": value: " + value);
+    //  println('this.cc_values[cc] == value) ' + index + ": value: " + value);
       return;
    } else {
-      println('update) ' + index + ": value: " + value);
+   //   println('update) ' + index + ": value: " + value);
 
    };
+
+   println('page count' + this.remoteControlsBank.pageCount().get());
 
    var status = 0xB0;
    var data1 = cc;
@@ -58,45 +61,49 @@ RemoteControlHandler.prototype.remoteUpdate = function(index, value){
  //  println('remote update: index: ' + index + ": value: " + value);
 }
 
+RemoteControlHandler.prototype.updateLED = function(){
+   //
+   println('RemoteControlHandler.prototype.updateLED :' );
+   var status = 0xB0 | (this.midi_channel-1);
+   for (var i = 0; i < this.remoteControlsBank.getParameterCount (); i++){
+      var value = Math.round(this.remoteControlsBank.getParameter(i).value().get() * 127);
+      var cc = this.cc_list[i];
+
+      println('RemoteControlHandler.prototype.updateLED :' + cc + ' : ' + value  );
+      this.hardware.sendMidi(status, cc, value);
+      if (this.cc_values[cc] != value) {
+         
+      }
+      //println('updateLED: cc ' + cc + '--- value: ' + value)
+   }
+}
+
 RemoteControlHandler.prototype.updateValues = function(){
    var i;
    for (i = 0; i < this.remoteControlsBank.getParameterCount (); i++){
       this.remoteControlsBank.getParameter (i);
-  }s
+  }
 }
 
-RemoteControlHandler.prototype.handleMidi = function (status, data1, data2)
-{
- //  println(this.midi_channel)
- //  println("MIDIChannel(status)" + MIDIChannel(status))
- //  println("status(status)" + status)
-   if ( MIDIChannel(status) +1 == this.midi_channel) {
+RemoteControlHandler.prototype.handleMidi = function (status, data1, data2){
+   if (isChannelController(status)) {
+      if (data1 == BCR_BTN_BOX_1) {
+      }
 
-      if (isChannelController(status)) {
-         if (data1 == BCR_BTN_BOX_1) {
 
-         }
+      index = this.cc_translation[data1];
+      
+      //return if its already there...
+      if(this.cc_values[data1] == data2) return true;
 
-         index = this.cc_translation[data1];
-         
-         //return if its already there...
-         if(this.cc_values[data1] == data2) return true;
-
-         if (index != undefined) {
-            this.remoteControlsBank.getParameter(index).set(data2, 128); 
-            this.cc_values[data1] = data2;
-            return true;
-         }
+      if (index != undefined) {
+        // println('identified...')
+         this.remoteControlsBank.getParameter(index).set(data2, 128); 
+         this.cc_values[data1] = data2;
+         return true;
       }
    }
 
-   return false;    
-}
 
-function makeIndexedFunction(index, f)
-{
-	return function(value)
-	{
-		f(index, value);
-	};
+   return false;    
 }

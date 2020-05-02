@@ -48,6 +48,42 @@ function ColorTrack(bankSize, colorTrackName) {
    }
 }
 
+ColorTrack.prototype.handleMidi = function(status, data1, data2){
+   //Deal with color track input...
+   if(isNoteOn(status)){
+
+      if(NoteOnStack==1) {
+         ColorTrackInstance.randomizeColors();
+         ColorTrackInstance.writeData();
+      }
+      NoteOnStack++;
+      ColorTrackInstance.enableEdit(true);
+      return true;
+
+   } else if (isNoteOff(status)) {
+
+      if(NoteOnStack==1) {
+         ColorTrackInstance.enableEdit(false);
+      }
+      NoteOnStack--;
+      return true;
+   }
+
+   //Store Knob Values...
+   var cc = parseInt(data1);
+   var target_cc = cc - CCBase;
+
+   if (ColorTrackInstance.editEnabled) {
+      Hardware.sendMidi(status+1, data1, data2);
+      ColorTrackInstance.colorValuesUpdate(target_cc, data2);
+      return true;
+   } else {
+      ColorTrackInstance.knobValuesUpdate(target_cc, data2);
+   }
+
+   //Normal knobs just go thru the game...
+   return false;   
+}
 
 ColorTrack.prototype.enableEdit = function(isEnabled){
    if(isEnabled == true) {
