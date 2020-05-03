@@ -1,14 +1,20 @@
-function RemoteControlHandler (cursorDevice, remoteControlsBank , cc_list, midi_channel, hardware, page_index) {
+function RemoteControlHandler (cursorDevice, remoteControlsBank, hardwareSurfaceKnobs, cc_list, midi_channel, hardware, page_index) {
    this.hardware = hardware;
    this.cursorDevice = cursorDevice;
    this.remoteControlsBank = remoteControlsBank;
    this.cc_list = cc_list;
+   this.cc_list_values = [];
+   this.cc_values_ignore = [];
    
    this.cc_translation = {};
    this.cc_values = {};
    
    this.midi_channel = midi_channel;
    this.page_index = page_index;
+
+   this.hardwareSurfaceKnobs = hardwareSurfaceKnobs;
+
+   println('this.hardwareSurfaceKnobs: ' + this.hardwareSurfaceKnobs);
    
    for(i = 0;i<cc_list.length;i++){
       this.cc_translation[cc_list[i]] = i;
@@ -17,11 +23,13 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank , cc_list, midi_
 
    this.remoteControlsBank.selectedPageIndex().markInterested();
    this.remoteControlsBank.pageCount().addValueObserver(doObject(this, this.resetPage),-1);
-   println('page count' + this.remoteControlsBank.pageCount().get());
+  // println('page count' + this.remoteControlsBank.pageCount().get());
 
    var i;
    for (i = 0; i < this.remoteControlsBank.getParameterCount(); i++) {
       var callback_func = makeIndexedFunction(i, doObject(this, this.remoteUpdate));
+      this.hardwareSurfaceKnobs[i].setBinding(this.remoteControlsBank.getParameter(i));
+      this.remoteControlsBank.getParameter(i).value().markInterested();
       this.remoteControlsBank.getParameter(i).value().addValueObserver(128,callback_func);
       this.remoteControlsBank.getParameter(i).setIndication(true);
    }
@@ -42,8 +50,6 @@ RemoteControlHandler.prototype.setIndication = function (enable)
 RemoteControlHandler.prototype.remoteUpdate = function(index, value){
    var cc = this.cc_list[index];
 
-   return;
-
    if(this.cc_values[cc] == value){ 
     //  println('this.cc_values[cc] == value) ' + index + ": value: " + value);
       return;
@@ -52,17 +58,18 @@ RemoteControlHandler.prototype.remoteUpdate = function(index, value){
 
    };
 
-   println('page count' + this.remoteControlsBank.pageCount().get());
-
    var status = 0xB0;
    var data1 = cc;
    var data2 = value;
-   this.hardware.sendMidi(status, data1, data2);
- //  println('remote update: index: ' + index + ": value: " + value);
+
+   this.cc_list_values[data1] = value;
+   //this.hardware.sendMidi(status, data1, data2);
+   println('remote update: data1: ' + data1 + ": value: " + data2);
 }
 
 RemoteControlHandler.prototype.updateLED = function(){
    //
+
    println('RemoteControlHandler.prototype.updateLED :' );
    var status = 0xB0 | (this.midi_channel-1);
    for (var i = 0; i < this.remoteControlsBank.getParameterCount (); i++){
@@ -98,7 +105,7 @@ RemoteControlHandler.prototype.handleMidi = function (status, data1, data2){
 
       if (index != undefined) {
         // println('identified...')
-         this.remoteControlsBank.getParameter(index).set(data2, 128); 
+         //this.remoteControlsBank.getParameter(index).set(data2, 128); 
          this.cc_values[data1] = data2;
          return true;
       }
@@ -107,3 +114,11 @@ RemoteControlHandler.prototype.handleMidi = function (status, data1, data2){
 
    return false;    
 }
+
+
+
+function unignoreHostChange(cc) {
+   if (Date.now() - ccValueLastTouchedTime[cc] > 49){
+     ccValueIgnore[cc] = false;
+   }
+ }

@@ -1,4 +1,4 @@
-function DrumMachine(massiveBank, hardware, channel, target_track) {
+function DrumMachine(massiveBank, hardware, hardwareSurface, channel, target_track) {
 
    this.target_track = target_track;
    
@@ -8,6 +8,10 @@ function DrumMachine(massiveBank, hardware, channel, target_track) {
    //Custom Handler
    this.trackHandler = new TrackHandler(this.trackBank, this.cursorTrack, massiveBank, 0, target_track);
   
+   this.hardwareSurface = hardwareSurface;
+
+   this.hardwareSurfaceHandler = new HardwareSurfaceHandler(hardwareSurface, hardware.inputPort, channel);
+
    //Cursor Device
    follow_mode = CursorDeviceFollowMode.FIRST_DEVICE;
 
@@ -23,14 +27,14 @@ function DrumMachine(massiveBank, hardware, channel, target_track) {
    //Cursur Devices
    this.cursorDevice = this.cursorTrack.createCursorDevice("CURSOR_DEVICE_" + channel, "Cursor Device " + channel, 0, follow_mode); 
    
-   remoteHandler1 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d1', 8, ''), DRUM_COL_1, channel, hardware, 0);
-   remoteHandler2 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d2', 8, ''), DRUM_COL_2, channel, hardware, 1);
-   remoteHandler3 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d3', 8, ''), DRUM_COL_3, channel, hardware, 2);
-   remoteHandler4 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d4', 8, ''), DRUM_COL_4, channel, hardware, 3);
-   remoteHandler5 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d5', 8, ''), DRUM_COL_5, channel, hardware, 4);
-   remoteHandler6 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d6', 8, ''), DRUM_COL_6, channel, hardware, 5);
-   remoteHandler7 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d7', 8, ''), DRUM_COL_7, channel, hardware, 6);
-   remoteHandler8 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d8', 8, ''), DRUM_COL_8, channel, hardware, 7);
+   remoteHandler1 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d1', 8, ''), this.hardwareSurfaceHandler.getCol(0), DRUM_COL_1, channel, hardware, 0);
+   remoteHandler2 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d2', 8, ''), this.hardwareSurfaceHandler.getCol(1), DRUM_COL_2, channel, hardware, 1);
+   remoteHandler3 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d3', 8, ''), this.hardwareSurfaceHandler.getCol(2), DRUM_COL_3, channel, hardware, 2);
+   remoteHandler4 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d4', 8, ''), this.hardwareSurfaceHandler.getCol(3), DRUM_COL_4, channel, hardware, 3);
+   remoteHandler5 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d5', 8, ''), this.hardwareSurfaceHandler.getCol(4), DRUM_COL_5, channel, hardware, 4);
+   remoteHandler6 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d6', 8, ''), this.hardwareSurfaceHandler.getCol(5), DRUM_COL_6, channel, hardware, 5);
+   remoteHandler7 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d7', 8, ''), this.hardwareSurfaceHandler.getCol(6), DRUM_COL_7, channel, hardware, 6);
+   remoteHandler8 = new RemoteControlHandler(this.cursorDevice, this.cursorDevice.createCursorRemoteControlsPage('d8', 8, ''), this.hardwareSurfaceHandler.getCol(7), DRUM_COL_8, channel, hardware, 7);
 
    this.remoteControlHandlers = [remoteHandler1, remoteHandler2, remoteHandler3, remoteHandler4, remoteHandler5, remoteHandler6, remoteHandler7, remoteHandler8];
 }

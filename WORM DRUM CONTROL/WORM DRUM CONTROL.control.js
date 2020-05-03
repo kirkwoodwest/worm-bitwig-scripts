@@ -4,6 +4,7 @@ load('BCR2000.js')
 load('DrumMachine.js')
 load('TrackHandler.js')
 load('RemoteControlHandler.js')
+load('HardwareSurfaceHandler.js')
 load('../WORM_UTILS/WORM_UTIL.js')
 //load('TrackHandler.js');
 //load('RemoteControlHandler.js');
@@ -43,6 +44,7 @@ const BCR_1_CHANNEL = 1;
 const BCR_2_CHANNEL = 2;
 
 Hardware = null;
+HardwareSurface = null;
 Machines = null;
 Drum1 = null
 Drum2 = null
@@ -53,6 +55,7 @@ function init() {
       
    //Hardware map
    Hardware = new BCR2000(midi_out, midi_in, midiHandler);
+   HardwareSurface = host.createHardwareSurface();
 
    host.getNotificationSettings().setShouldShowValueNotifications(true);
 
@@ -65,11 +68,11 @@ function init() {
 
    midi_channel = 1;
    channel_name = "DRUM2"
-   Drum1 = new DrumMachine(massiveBank, Hardware, midi_channel, channel_name);
+   Drum1 = new DrumMachine(massiveBank, Hardware, HardwareSurface, midi_channel, channel_name);
 
    midi_channel = 2;
    channel_name = "DRUM3"
-   Drum2 = new DrumMachine(massiveBank, Hardware, midi_channel, channel_name);
+   Drum2 = new DrumMachine(massiveBank, Hardware, HardwareSurface, midi_channel, channel_name);
    
    Machines = [Drum1, Drum2];
    
@@ -84,8 +87,8 @@ function midiHandler(status, data1, data2) {
       println('updateMidiKnobs');
       updateMidiKnobs();
    }
-
-   var success = Machines[MIDIChannel(status)].handleMidi(status, data1, data2);
+   var success= true;
+ //  var success = Machines[MIDIChannel(status)].handleMidi(status, data1, data2);
 
    if (success == true) return;
    
