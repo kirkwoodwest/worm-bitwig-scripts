@@ -83,8 +83,7 @@ function init() {
 
 // Called when a short MIDI message is received on MIDI input port 0.
 function midiHandler(status, data1, data2) {
-   if (data1 == BCR_BTN_BOX_1) {
-      println('updateMidiKnobs');
+   if (data1 == BCR_BTN_BOX_1) {;
       updateMidiKnobs();
    }
    var success= true;

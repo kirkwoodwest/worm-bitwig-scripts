@@ -23,7 +23,6 @@ function floatToRange(float, range){
   return Math.round(float*range);
 }
 
-
 function makeIndexedFunction(index, f)
 {
 	return function(value)
@@ -31,3 +30,4 @@ function makeIndexedFunction(index, f)
 		f(index, value);
 	};
 }
+

@@ -2,7 +2,6 @@
 Constants
 */
 const INIT_WAIT_TIME = 2000;   //Wait time until init.
-const CHANNEL_SEARCH_TIME = 200; //Wait time between channel searches.
 const RESTART_DOCUMENT_CHANNEL_SEARCH_TIME = 1000; //Wait time between channel searches.
 MFT_EMPTYCOLOR_TABLE = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];   //Default Color Table is empty
 
@@ -20,22 +19,22 @@ function ColorTrack(bankSize, colorTrackName) {
 
    this.mft_color_values = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
    this.mft_knob_values = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-
-   //Create Cursor Track and Cursor Clip
-   this.cursorTrack = host.createCursorTrack("MAIN_CURSOR_TRACK", "Color Track", 0,0, true);
-   this.cursorClip = this.cursorTrack.createLauncherCursorClip('CURSOR_CLIP_1', 'Color Clip',1,1);
-   this.cursorTrack.isPinned().markInterested();
+   this.ccBase = 0;
 
    //Create Track Bank
    this.trackBank = host.createTrackBank(1, 0, bankSize);
-   this.trackBank.scrollPosition().markInterested();
-   this.trackBank.itemCount().markInterested();
 
-   var track = this.trackBank.getItemAt(0);
-   name = track.name();
-   name.markInterested();
+   //Create Cursor Track and Cursor Clip
+   this.cursorTrack = host.createCursorTrack("COLOR_CURSOR_TRACK", "Color Track", 0,0, true);
+   this.cursorClip = this.cursorTrack.createLauncherCursorClip('COLOR_CURSOR_CLIP_1', 'Color Clip',1,1);
+   this.cursorTrack.isPinned().markInterested();
+
+   //Channel Finder
+   this.channelFinder = new ChannelFinder(this.cursorTrack, this.trackBank);
+   this.channelFinder.find(colorTrackName);
 
    //Get Slots
+   var track = this.trackBank.getItemAt(0);
    this.slotBank = track.clipLauncherSlotBank();
    this.slotBank.addIsPlayingObserver(doObject(this, this.playingStatusChanged));
    this.slotBank.setIndication(true)
@@ -71,7 +70,7 @@ ColorTrack.prototype.handleMidi = function(status, data1, data2){
 
    //Store Knob Values...
    var cc = parseInt(data1);
-   var target_cc = cc - CCBase;
+   var target_cc = cc - this.ccBase;
 
    if (ColorTrackInstance.editEnabled) {
       Hardware.sendMidi(status+1, data1, data2);
@@ -100,41 +99,6 @@ ColorTrack.prototype.enableEdit = function(isEnabled){
 
 
 /**
- * Finds the channel for our color track.
- */
-ColorTrack.prototype.findChannel = function(){
-   this.channelFindIndex = -1;
-   this.channelInitialized = false;
-   this._findChannel();
-}
-
-ColorTrack.prototype._findChannel = function(){
-
-   //Get current channel for the trackbank
-   var channel = this.trackBank.getItemAt(0)
-   var name = channel.name().get();
-
-   //attempt to match with the track name...
-   if (name == this.colorTrackName) {
-      //Matched Select the channel and pin it.
-      this.cursorTrack.selectChannel(channel);
-      this.cursorTrack.isPinned().set(true);
-      this.channelInitialized = true;
-   } else {
-      //Keep searching, increment index and move the position and attempt to refind.
-      this.channelFindIndex++;
-      this.trackBank.scrollPosition().set(this.channelFindIndex);
-      channel_count = this.trackBank.itemCount().get();
-
-      if (this.channelFindIndex <= channel_count) {
-         //Only attempt again if our index doesn't exceed the channel count...
-         host.scheduleTask(doObject(this,this._findChannel), CHANNEL_SEARCH_TIME + (Math.random()*200));
-      }
-   }
-}
-
-
-/**
  * Randomizes colors for the Entire Bank
  */
 ColorTrack.prototype.randomizeColors = function() {
@@ -145,7 +109,7 @@ ColorTrack.prototype.randomizeColors = function() {
    var channel = 1;
    var status = 0xB0 | channel;
    for(var cc = 0; cc < this.mft_color_values.length;cc++){
-      Hardware.sendMidi(status, cc+CCBase, this.mft_color_values[cc]);
+      Hardware.sendMidi(status, cc+this.ccBase, this.mft_color_values[cc]);
    }
 
 }
@@ -155,7 +119,7 @@ ColorTrack.prototype.randomizeColors = function() {
  */
 ColorTrack.prototype.setName = function(name){
    this.colorTrackName = name;
-   this.findChannel();
+   this.channelFinder.find( this.colorTrackName );
 }
 
 /**
@@ -180,8 +144,9 @@ ColorTrack.prototype.playingStatusChanged = function(slot_index, is_playing){
 
 
 ColorTrack.prototype.readData = function() {
-   if (this.channelInitialized == false || this.playingSlotIndex == -1 ){ 
-      host.scheduleTask(doObject(this, this.readData), CHANNEL_SEARCH_TIME); 
+
+   if (this.channelsInitialized == false || this.playingSlotIndex == -1 ){ 
+      host.scheduleTask(doObject(this, this.readData), RESTART_DOCUMENT_CHANNEL_SEARCH_TIME); 
       return;
    }
   
@@ -200,12 +165,12 @@ ColorTrack.prototype.readData = function() {
    for(i=0;i<colors_array.length;i++){
       var channel = 1;
       var status = 0xB0 | channel;
-      var data1 = (i+CCBase).toString(16)
+      var data1 = (i+this.ccBase).toString(16)
 
       var val = colors_array[i];
       var data2 = parseInt(val).toString(16)
       
-      Hardware.sendMidi(status, i+CCBase, val);      
+      Hardware.sendMidi(status, i+this.ccBase, val);      
    }
 
    this.mft_color_values = colors_array;
@@ -246,7 +211,7 @@ ColorTrack.prototype.restoreKnobValues = function(value_array) {
    var channel = 0;
    var status = 0xB0 | channel;
    for(var cc = 0; cc<value_array.length;cc++){
-      Hardware.sendMidi(status, cc+CCBase, value_array[cc]);
+      Hardware.sendMidi(status, cc+this.ccBase, value_array[cc]);
    }
 }
 
@@ -256,4 +221,8 @@ ColorTrack.prototype.colorValuesUpdate = function(target_cc, data2){
 
 ColorTrack.prototype.knobValuesUpdate = function(target_cc, data2){
    this.mft_knob_values[target_cc] = data2;
+}
+
+ColorTrack.prototype.setCCBase = function(ccBase) {
+   this.ccBase = ccBase;
 }

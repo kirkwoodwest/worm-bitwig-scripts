@@ -16,6 +16,7 @@ function HardwareSurfaceHandler(hardwareSurface, inputPort, midi_channel) {
 
    this.hardware_knobs = [];
    println('HardwareSurfaceHandler');
+   
    for(var col_idx=0;col_idx<this.controls.length;col_idx++){
       var drum_col = this.controls[col_idx];
       println('drum_col' + drum_col);

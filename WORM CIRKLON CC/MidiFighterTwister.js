@@ -14,13 +14,3 @@ const KNOB_A_13 = 0x0C;
 const KNOB_A_14 = 0x0D;
 const KNOB_A_15 = 0x0E;
 const KNOB_A_16 = 0x0F;
-
-function CIRKLON(outputPort, inputPort, inputCallback) {
-   this.outputPort 	= outputPort;
-   this.inputPort 	= inputPort;
-   this.inputPort.setMidiCallback(inputCallback);
-}
-
-CIRKLON.prototype.sendMidi = function(status, data1, data2) {
-   this.outputPort.sendMidi(status, data1, data2);
-}

@@ -14,8 +14,6 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank, hardwareSurface
 
    this.hardwareSurfaceKnobs = hardwareSurfaceKnobs;
 
-   println('this.hardwareSurfaceKnobs: ' + this.hardwareSurfaceKnobs);
-   
    for(i = 0;i<cc_list.length;i++){
       this.cc_translation[cc_list[i]] = i;
       this.cc_values[cc_list[i]] = -1;
@@ -23,7 +21,6 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank, hardwareSurface
 
    this.remoteControlsBank.selectedPageIndex().markInterested();
    this.remoteControlsBank.pageCount().addValueObserver(doObject(this, this.resetPage),-1);
-  // println('page count' + this.remoteControlsBank.pageCount().get());
 
    var i;
    for (i = 0; i < this.remoteControlsBank.getParameterCount(); i++) {
