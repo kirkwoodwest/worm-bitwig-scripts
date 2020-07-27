@@ -54,7 +54,18 @@ RemoteControlHandler.prototype.handleMidi = function (status, data1, data2) {
       index = this.cc_translation[parseInt(data1)];
       if (index != undefined) {
          this.remoteControlsBank.getParameter(index).set(data2, 128); 
-         this.remoteControlsBank.getParameter(index).name().set('yolo')
+
+         //set color?
+         name_str = this.remoteControlsBank.getParameter(index).name().get();
+         split_str = name_str.split('|')
+         if (split_str[1] != null) {
+            color_number = split_str[1];
+            base_string = split_str[0];
+            
+            new_string = base_string + '|' + data2;
+            this.remoteControlsBank.getParameter(index).name().set(new_string)
+         }
+         
          return true;
       }
    }
