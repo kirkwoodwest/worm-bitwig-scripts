@@ -14,7 +14,7 @@ host.setShouldFailOnDeprecatedUse(true);
 
 host.defineController("Kirkwood West", "TWIST MAX", "0.1", "bc190864-8728-48f1-805e-22761801721b", "kirkwoodwest");
 
-host.defineMidiPorts(1, 1);
+host.defineMidiPorts(2, 2);
 
 if (host.platformIsWindows())
 {
@@ -56,7 +56,8 @@ PrefColorBankSizeSetting = null; //
 
 LauncherBankSize = 128;
 
-Hardware = null //Controller Hardware Instance
+HardwareTwister = null //Controller Instance
+HardwareCirklon = null //Controller Instance
 ColorTrackInstance = null;
 
 NoteOnStack = 0;  //Determines how many side buttons are pressed
@@ -97,7 +98,8 @@ function init() {
    app.projectName().addValueObserver(rescanTracks);
    
    //Setup our hardware instance.
-   Hardware = new MidiFighterTwister(host.getMidiInPort(0), host.getMidiOutPort(0), onMidi);
+   HardwareTwister = new HardwareBasic(host.getMidiInPort(0), host.getMidiOutPort(0), onMidiTwister);
+   HardwareCirklon = new HardwareBasic(host.getMidiInPort(1), host.getMidiOutPort(1), onMidiCirklon);
 
 
    //Track Banks
@@ -162,7 +164,7 @@ function init() {
          cursorRemotePage = cursorDevice.createCursorRemoteControlsPage(cursor_remote_page_id, knob_count,'');
          cursorRemotePages.push(cursorRemotePage);
 
-         remoteHandler = new RemoteControlHandler(cursorDevice, cursorRemotePage , p_index, cc_min, cc_max, Hardware) 
+         remoteHandler = new RemoteControlHandler(cursorDevice, cursorRemotePage, p_index, cc_min, cc_max, HardwareTwister, HardwareCirklon) 
          remoteHandlers.push(remoteHandler);
          
          channelFinder = new ChannelFinder(cursorTrack, bank, track_settings_name);
@@ -179,7 +181,7 @@ function init() {
    }
 
    //Initialize the color track
-   ColorTrackInstance = new ColorTrack(LauncherBankSize, colorTrackName, TWISTER_COLOR_MIDI_CHANNEL, TWISTER_CC_MIN, TWISTER_CC_MAX);
+   ColorTrackInstance = new ColorTrack(HardwareTwister, LauncherBankSize, colorTrackName, TWISTER_COLOR_MIDI_CHANNEL, TWISTER_CC_MIN, TWISTER_CC_MAX);
    MidiProcesses = [ColorTrackInstance].concat(remoteHandlers);
      
    //If your reading this... I hope you say hello to a loved one today. <3
@@ -188,12 +190,22 @@ function init() {
 }
 
 // Called when a short MIDI message is received on MIDI input port 0.
-function onMidi(status, data1, data2) {
+function onMidiTwister(status, data1, data2) {
    for(i=0; i< MidiProcesses.length; i++){
       stop_processing = MidiProcesses[i].handleMidi(status, data1, data2);
       if(stop_processing) return;
    }
 }
+
+// Called when a short MIDI message is received on MIDI input port 0.
+function onMidiCirklon(status, data1, data2) {
+   //process remote handlers only...
+   for(i=0; i< MidiProcesses.length; i++){
+      stop_processing = remoteHandlers[i].handleMidi(status, data1, data2);
+      if(stop_processing) return;
+   }
+}
+
 
 function flush() {
    // TODO: Flush any output to your controller here.
@@ -238,7 +250,7 @@ function settingColorTrackNameChanged(value){
    ColorTrackInstance.setName(value);
 }
 
-function settingTopTrackNameChanged(value){
+function settingMainTrackNameChanged(value){
    channelFinders[0].find(value);
 }
 function settingBottomTrackNameChanged(value){

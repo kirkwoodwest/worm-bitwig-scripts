@@ -1,18 +1,13 @@
 
 
-function RemoteControlHandler (cursorDevice, remoteControlsBank, page_index, twister_cc_min, twister_cc_max, hardware) {
-   this.hardware = hardware;
+function RemoteControlHandler (cursorDevice, remoteControlsBank, page_index, twister_cc_min, twister_cc_max, hardware_twister, hardware_cirklon) {
    this.cursorDevice = cursorDevice;
    this.remoteControlsBank = remoteControlsBank;
-
    this.page_index = page_index;
-   println('\n init remote control handler----')
-   println('page index: ' + page_index);
-   println('twister_cc_min: ' + twister_cc_min);
-   println('twister_cc_max: ' + twister_cc_max);
-
    this.twister_cc_min = twister_cc_min;
    this.twister_cc_max = twister_cc_max;
+   this.hardware_twister = hardware_twister;
+   this.hardware_cirklon = hardware_cirklon;
 
    this.cc_list = [];
    index = 0;
@@ -35,10 +30,10 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank, page_index, twi
    this.remoteControlsBank.pageNames().markInterested();
    this.remoteControlsBank.pageNames().addValueObserver(doObject(this, this.pageNamesChanged));
 
-   this.remoteControlsBank.selectedPageIndex().markInterested();
+  // this.remoteControlsBank.selectedPageIndex().markInterested();
   
-   this.remoteControlsBank.selectedPageIndex().addValueObserver(doObject(this, this.selectedPageIndexChanged));
-   this.remoteControlsBank.pageCount().addValueObserver(doObject(this, this.resetPage),-1);
+  // this.remoteControlsBank.selectedPageIndex().addValueObserver(doObject(this, this.selectedPageIndexChanged));
+  // this.remoteControlsBank.pageCount().addValueObserver(doObject(this, this.resetPage),-1);
 
    var i;
    for (i = 0; i < this.remoteControlsBank.getParameterCount(); i++) {
@@ -48,8 +43,6 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank, page_index, twi
       parameter.name().markInterested();
    }
    this.setIndication(true);
-   this.resetPage();
-
 }
 
 RemoteControlHandler.prototype.pageNamesChanged = function(){
@@ -61,8 +54,7 @@ RemoteControlHandler.prototype.pageNamesChanged = function(){
 }
 
 RemoteControlHandler.prototype.selectedPageIndexChanged = function(){}
-RemoteControlHandler.prototype.resetPage = function(){
-}
+RemoteControlHandler.prototype.resetPage = function(){}
 
 
 RemoteControlHandler.prototype.setIndication = function (enable)
@@ -79,28 +71,20 @@ RemoteControlHandler.prototype.remoteUpdate = function(index, value){
    var status = 0xB0;
    var data1 = cc;
    var data2 = value;
-   this.hardware.sendMidi(status, data1, data2);
+   this.hardware_twister.sendMidi(status, data1, data2);
+  // this.hardware_cirklon.sendMidi(status, data1, data2);
 }
 
-//TODO: Figure out what this is for... i think its just for the color handler.... or some experiment related to it...
+//TODO: Convert to using hardware connection...
 RemoteControlHandler.prototype.handleMidi = function (status, data1, data2) {
    data1 = data1;
    if (isChannelController(status)) {
-      println('cc: ' + parseInt(data1))
       cc = parseInt(data1);
 
-      if (cc < this.twister_cc_min || cc > this.twister_cc_max) {
-         // don't process if the midi is out of range for the knob.
-         println('knob out of range');
-         println('cc: ' + cc)
-         println('cc min: ' + this.twister_cc_min)
-         println('cc max: ' + this.twister_cc_max)
-         return;
-      }
+       //skip process if the midi is out of range for the knob.
+      if (cc < this.twister_cc_min || cc > this.twister_cc_max) return;
+
       index = this.cc_translation[parseInt(data1)];
-      println('this.cc_translation: '+ this.cc_translation);
-      println('status: '+ status);
-      println('index: '+ index);
 
       if(index == undefined || index == null) {
          print('undefined or null')
@@ -109,19 +93,7 @@ RemoteControlHandler.prototype.handleMidi = function (status, data1, data2) {
 
       println('data1: '+ data1);
       if (index != undefined) {
-         this.remoteControlsBank.getParameter(index).set(data2, 128); 
-
-         //set color?
-         name_str = this.remoteControlsBank.getParameter(index).name().get();
-         split_str = name_str.split('|')
-         if (split_str[1] != null) {
-            color_number = split_str[1];
-            base_string = split_str[0];
-            
-            new_string = base_string + '|' + data2;
-            this.remoteControlsBank.getParameter(index).name().set(new_string)
-         }
-         
+         this.remoteControlsBank.getParameter(index).set(data2, 128);        
          return true;
       }
    }

@@ -23,6 +23,10 @@ function floatToRange(float, range){
   return Math.round(float*range);
 }
 
+function map_range(value, low1, high1, low2, high2) {
+  return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
+}
+
 function makeIndexedFunction(index, f)
 {
 	return function(value)

@@ -9,8 +9,8 @@ const RESTART_DOCUMENT_CHANNEL_SEARCH_TIME = 1000; //Wait time between channel s
  * @param {Number} bankSize Size of Bank necessary to determine how many color clips this script can manage...
  * @param {String} colorTrackName Name of the color track to match to..
  */
-function ColorTrack(bankSize, colorTrackName, color_midi_channel, cc_min, cc_max) {
-
+function ColorTrack(hardwareTwister, bankSize, colorTrackName, color_midi_channel, cc_min, cc_max) {
+   this.hardwareTwister = hardwareTwister;
    this.colorTrackName = colorTrackName;
    this.color_midi_channel = color_midi_channel;
    this.status = 0xB0 | color_midi_channel;
@@ -91,7 +91,7 @@ ColorTrack.prototype.handleMidi = function(status, data1, data2){
    var cc = parseInt(data1);
 
    if (ColorTrackInstance.editEnabled) {
-      Hardware.sendMidi(this.status, data1, data2);
+      this.hardwareTwister.sendMidi(this.status, data1, data2);
       ColorTrackInstance.colorValuesUpdate(cc, data2);
       return true;
    } else {
@@ -128,7 +128,7 @@ ColorTrack.prototype.randomizeColors = function() {
    
    var index = 0;
    for(var cc = this.cc_min; cc<=this.cc_max.length;cc++){
-      Hardware.sendMidi(status, cc, this.mft_color_values[index]);
+      this.hardwareTwister.sendMidi(status, cc, this.mft_color_values[index]);
       index++;
    }
 }
@@ -182,15 +182,11 @@ ColorTrack.prototype.readData = function() {
    //Is the clip name empty?
    if (name != '') colors_array = name.split(',');
 
-   println('name: ' +name);
-   println('colors_array: ' +colors_array);
-
    //Loop thru array and send color data to hardware...
    var index = 0;
    for(var cc_index = this.cc_min; cc_index<=this.cc_max; cc_index++){
-    //  Hardware.sendMidi(status, cc, value_array[cc]);
       var val = colors_array[index];
-      Hardware.sendMidi(this.status, cc_index, val);    
+      this.hardwareTwister.sendMidi(this.status, cc_index, val);    
       index++;  
    }
 
@@ -234,7 +230,7 @@ ColorTrack.prototype.restoreKnobValues = function(value_array) {
    var status = 0xB0 | channel;
    var index = 0;
    for(var cc = this.cc_min; cc<=this.cc_max;cc++){
-      Hardware.sendMidi(status, cc, value_array[index]);
+      this.hardwareTwister.sendMidi(status, cc, value_array[index]);
       index++;
    }
 }
