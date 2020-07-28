@@ -1,7 +1,7 @@
 load("Config.js")
 load('../WORM_UTILS/WORM_UTIL.js')
 load('../WORM_UTILS/ChannelFinder.js')
-load("MidiFighterTwister.js");
+load("HardwareBasic.js");
 load("TwisterTrackSetting.js");
 load('RemoteControlHandler.js')
 load('ColorTrack.js')
@@ -112,7 +112,7 @@ function init() {
    channelFinders = [];
 
    //Cursor Device
-   follow_mode = CursorDeviceFollowMode.FOLLOW_SELECTION;
+   follow_mode = CursorDeviceFollowMode.FIRST_DEVICE;
 
    //START EMULATION
    for (i=0; i< TWISTER_TRACK_SETTINGS_NAMES.length; i++){       
@@ -127,13 +127,18 @@ function init() {
       //knob count
       knob_count = twister_cc_max - twister_cc_min + 1
       
-     
       //Create Banks, Tracks and Cursor Devices...
       bank = host.createTrackBank(1,0,0,true) 
       banks.push(bank);
 
-      cursorTrack = host.createCursorTrack("CURSOR_TRACK_" + i, controller_id, 0,0, false);
+      cursor_track_controller_id = controller_id + '_' + i;
+      cursorTrack = host.createCursorTrack("CURSOR_TRACK_" + i, cursor_track_controller_id, 0,0, false);
       cursorTracks.push(cursorTrack);
+
+      cursor_device_id = "CURSOR_DEVICE_" + i;
+      cursorDevice = cursorTrack.createCursorDevice(cursor_device_id, cursor_device_id, 0, follow_mode); // CursorDeviceFollowMode.FIRST_DEVICE
+      cursorDevices.push(cursorDevice);
+   
      // page_count = 1;
       for(p_index = 0; p_index<page_count;p_index++){
 
@@ -147,29 +152,30 @@ function init() {
             cc_max = twister_cc_min + offset +7;
             knob_count = 8;
          }
-        
-   
-         cursor_device_id = "CURSOR_DEVICE_" + i + "_" + p_index;
-         cursorDevice = cursorTrack.createCursorDevice(cursor_device_id, cursor_device_id, 0, follow_mode); // CursorDeviceFollowMode.FIRST_DEVICE
-         cursorDevices.push(cursorDevice);
 
          page_index = 0;
-         println('I: ' + i)
+    
+
+         println('\n\nknob_count : ' + knob_count + '\n');
          //Custom Remote Handler Class
          cursor_remote_page_id = "CURSOR_REMOTE_" +  i + "_" + p_index;
          cursorRemotePage = cursorDevice.createCursorRemoteControlsPage(cursor_remote_page_id, knob_count,'');
          cursorRemotePages.push(cursorRemotePage);
+
          remoteHandler = new RemoteControlHandler(cursorDevice, cursorRemotePage , p_index, cc_min, cc_max, Hardware) 
          remoteHandlers.push(remoteHandler);
          
+         channelFinder = new ChannelFinder(cursorTrack, bank, track_settings_name);
+         channelFinders.push(channelFinder);
+   
+
+         target_channel_name = track_settings_name;
+         twisterTracKSetting = new TwisterTrackSetting(controller_id+i+p_index,target_channel_name, controller_id, channelFinder);
+         twisterTrackSettings.push( twisterTracKSetting );
        
       }
 
-      channelFinder = new ChannelFinder(cursorTrack, bank, track_settings_name);
-      channelFinders.push(channelFinder);
-
-      twisterTracKSetting = new TwisterTrackSetting(controller_id+i, track_settings_name, controller_id, channelFinder);
-      twisterTrackSettings.push( twisterTracKSetting );
+     
    }
 
    //Initialize the color track
@@ -240,6 +246,34 @@ function settingBottomTrackNameChanged(value){
 }
 
 function report(){
+   println('report()')
+   println('report()' + cursorRemotePages)
+   println('report()' + cursorRemotePages.length)
+   
+   for(var i=0;i<cursorRemotePages.length;i++){
+      println('selected page index' + cursorRemotePages[i].selectedPageIndex().get());
+      println('selected page count' + cursorRemotePages[i].pageCount().get());
 
+   }
+}
+function selectPage(page_index){
+   println('report()')
+   println('report()' + cursorRemotePages)
+   println('report()' + cursorRemotePages.length)
+   
+   for(var i=0;i<cursorRemotePages.length;i++){
+      println('selected page index' + cursorRemotePages[i].selectedPageIndex().set(page_index));
 
+   }
+}
+function resetPages(){
+   println('report()')
+   println('report()' + cursorRemotePages)
+   println('report()' + cursorRemotePages.length)
+   
+   for(var i=0;i<remoteHandlers.length;i++){
+      remoteHandlers[i].resetPage();
+      println('selected page index' + cursorRemotePages[i].selectedPageIndex().set(page_index));
+
+   }
 }

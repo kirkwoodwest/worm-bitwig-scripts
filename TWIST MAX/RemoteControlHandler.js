@@ -6,6 +6,7 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank, page_index, twi
    this.remoteControlsBank = remoteControlsBank;
 
    this.page_index = page_index;
+   println('\n init remote control handler----')
    println('page index: ' + page_index);
    println('twister_cc_min: ' + twister_cc_min);
    println('twister_cc_max: ' + twister_cc_max);
@@ -35,6 +36,7 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank, page_index, twi
    this.remoteControlsBank.pageNames().addValueObserver(doObject(this, this.pageNamesChanged));
 
    this.remoteControlsBank.selectedPageIndex().markInterested();
+  
    this.remoteControlsBank.selectedPageIndex().addValueObserver(doObject(this, this.selectedPageIndexChanged));
    this.remoteControlsBank.pageCount().addValueObserver(doObject(this, this.resetPage),-1);
 
@@ -47,35 +49,21 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank, page_index, twi
    }
    this.setIndication(true);
    this.resetPage();
+
 }
 
 RemoteControlHandler.prototype.pageNamesChanged = function(){
-   println('pageNames(): ' + this.remoteControlsBank.pageNames().get());
-   println('pageNames() length: ' + this.remoteControlsBank.pageNames().get().length);
-   println('pageNames() is empty: ' + this.remoteControlsBank.pageNames().isEmpty());
-
-}
-
-RemoteControlHandler.prototype.selectedPageIndexChanged = function(){
-
-   println('\nselectedPageIndexChanged Event---------- ');
-   println('internal index: ' + this.page_index);
+   //Page update so make sure to update the indexes...
+   page_names = this.remoteControlsBank.pageNames().get();
+   index = 0;
+   if (this.page_index < page_names.length) index = this.page_index;
    this.remoteControlsBank.selectedPageIndex().set(this.page_index);
-   println('this.remoteControlsBank.selectedPageIndex().get() : ' + this.remoteControlsBank.selectedPageIndex().get());
 }
+
+RemoteControlHandler.prototype.selectedPageIndexChanged = function(){}
 RemoteControlHandler.prototype.resetPage = function(){
-   println('\nRESET PAGE---------- ');
-   this.remoteControlsBank.selectedPageIndex().set(this.page_index);
-   println('twister_cc_min' + this.twister_cc_min + '  | this.page_index:' + this.page_index);
-   println('this.remoteControlsBank.selectedPageIndex().get()' + this.remoteControlsBank.selectedPageIndex().get());
 }
 
-RemoteControlHandler.prototype.updateLed = function(){
-   var i;
-   for (i = 0; i < this.remoteControlsBank.getParameterCount (); i++){
-      var value = this.remoteControlsBank.getParameter (i).value();
-   }
-  }
 
 RemoteControlHandler.prototype.setIndication = function (enable)
 {
@@ -98,12 +86,26 @@ RemoteControlHandler.prototype.remoteUpdate = function(index, value){
 RemoteControlHandler.prototype.handleMidi = function (status, data1, data2) {
    data1 = data1;
    if (isChannelController(status)) {
+      println('cc: ' + parseInt(data1))
+      cc = parseInt(data1);
+
+      if (cc < this.twister_cc_min || cc > this.twister_cc_max) {
+         // don't process if the midi is out of range for the knob.
+         println('knob out of range');
+         println('cc: ' + cc)
+         println('cc min: ' + this.twister_cc_min)
+         println('cc max: ' + this.twister_cc_max)
+         return;
+      }
       index = this.cc_translation[parseInt(data1)];
       println('this.cc_translation: '+ this.cc_translation);
       println('status: '+ status);
       println('index: '+ index);
 
-      if(index == undefined || index == null) return;
+      if(index == undefined || index == null) {
+         print('undefined or null')
+         return;
+      }
 
       println('data1: '+ data1);
       if (index != undefined) {
