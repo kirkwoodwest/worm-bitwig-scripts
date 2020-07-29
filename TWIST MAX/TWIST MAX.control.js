@@ -151,14 +151,12 @@ function init() {
          if ( (twister_cc_max - twister_cc_min) > 8 ) {
             offset = p_index * 8;
             cc_min = twister_cc_min + offset;
-            cc_max = twister_cc_min + offset +7;
+            cc_max = twister_cc_min + offset + 7;
             knob_count = 8;
          }
 
          page_index = 0;
     
-
-         println('\n\nknob_count : ' + knob_count + '\n');
          //Custom Remote Handler Class
          cursor_remote_page_id = "CURSOR_REMOTE_" +  i + "_" + p_index;
          cursorRemotePage = cursorDevice.createCursorRemoteControlsPage(cursor_remote_page_id, knob_count,'');

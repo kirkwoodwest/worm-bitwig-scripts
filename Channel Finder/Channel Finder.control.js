@@ -9,7 +9,9 @@ host.defineController("Kirkwood West", "Channel Finder ", "0.1", "9077497e-f617-
 DocFindTrackSetting = null;
 DocFindTrackName = null;
 RescanSettings = null;
-ChannelFinderInstance = null
+ChannelFinderInstance = null;
+
+main_cursor_track = null;
 
 function init() {
    //Sertup Document Preferences
@@ -19,13 +21,14 @@ function init() {
    DocFindTrackName = DocFindTrackSetting.get();  
 
    RescanSettings = docstate.getSignalSetting('Rescan','Rescan Tracks', "Rescan Tracks")
-   RescanSettings.addSignalObserver(channelFinderRescan);
+   RescanSettings.addSignalObserver(settingMainTrackNameChanged);
+   
+   main_cursor_track = host.createCursorTrack("CURSOR_TRACK_2", "CURSOR TRACK", 0,0, false);
 
-   bank = host.createTrackBank(1,0,0,true);
-   cursor_track = host.createCursorTrack("CURSOR_TRACK_2", "CURSOR TRACK", 0,0, false);
-   ChannelFinderInstance = new ChannelFinder(cursor_track, bank, DocFindTrackName);
+   ChannelFinderInstance = new ChannelFinder();
+   ChannelFinderInstance.setupCursorTracks(main_cursor_track);
+   ChannelFinderInstance.find(main_cursor_track, DocFindTrackName)
 
-   // TODO: Perform further initialization here.
    println("Channel Finder  initialized!");
 }
 
@@ -39,5 +42,5 @@ function exit() {
 }
 
 function settingMainTrackNameChanged(value){
-   ChannelFinderInstance.find(value);
+   ChannelFinderInstance.find(main_cursor_track, DocFindTrackSetting.get());
 }
