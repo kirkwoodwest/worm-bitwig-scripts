@@ -10,7 +10,7 @@ load('Config.js')
 // This is useful during development.
 host.setShouldFailOnDeprecatedUse(true);
 
-host.defineController("Kirkwood West", "WORM Xtouch MINI", "0.1", "ded33e0e-dcd6-461f-86b9-04580bdfc4d7", "kirkwoodwest");
+host.defineController("Kirkwood West", "WORM Xtouch MINI", "0.1", "766a3bd0-d1b9-11ea-8b6e-0800200c9a66", "kirkwoodwest");
 
 host.defineMidiPorts(1, 1);
 
@@ -115,11 +115,13 @@ function init() {
    cc_max = XTOUCH_RESAMPLE_CC[1];
    track_handler = new TrackHandler(bank, cursor_track, Hardware, cc_min, cc_max);
    channel_finder = new ChannelFinder(cursor_track, bank, resampleTrackName);
-VOLUME_MAX_CC
+
+
    banks.push(bank); 
    cursorTracks.push(cursor_track);
    trackHandlers.push(track_handler); 
    channelFinders.push(channel_finder);
+*/
 
 
 
@@ -133,9 +135,34 @@ VOLUME_MAX_CC
 
 // Called when a short MIDI message is received on MIDI input port 0.
 function onMidi(status, data1, data2) {
+  
+   if (isNoteOn(status) && data1 == XTOUCH_BTN_A){
+      selectTrackHandler(0);
+   } else if (isNoteOn(status) && data1 == XTOUCH_BTN_B){
+      selectTrackHandler(1);
+   }
    for(i=0; i< MidiProcesses.length; i++){
       stop_processing = MidiProcesses[i].handleMidi(status, data1, data2);
       if(stop_processing) return;
+   }
+}
+
+function selectTrackHandler(id){
+   if (id == 0) {
+      trackHandlers[0].enable(true);
+      trackHandlers[1].enable(false);
+
+      status = 0x90;
+      this.hardware.sendMidi(status, XTOUCH_BTN_A, 127);
+      this.hardware.sendMidi(status, XTOUCH_BTN_B, 0);
+
+   } else {
+      trackHandlers[0].enable(false);
+      trackHandlers[1].enable(true);
+
+      status = 0x90;
+      this.hardware.sendMidi(status, XTOUCH_BTN_A, 0);
+      this.hardware.sendMidi(status, XTOUCH_BTN_B, 127);
    }
 }
 
@@ -165,24 +192,9 @@ function rescanTracks(){
  * Preferences Callbacks
 */
 
-/**
- * Called when the cc base has changed via settings...
- * @param {int} value 
- */
-function ccBaseNumberChanged(value) {
-   var ccBase = floatToRange(settingCCBaseNumber.get());
-   for(i=0;i<remoteHandlers.length;i++){
-      remoteHandlers[i].setCCBase(ccBase);
-   }
-   ColorTrackInstance.setCCBase(ccBase);
-}
 
 function settingBankSizeChanged(){
 
-}
-
-function settingColorTrackNameChanged(value){
-   ColorTrackInstance.setName(value);
 }
 
 function settingMainTrackNameChanged(value){
