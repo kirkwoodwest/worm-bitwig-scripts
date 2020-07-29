@@ -10,7 +10,7 @@ load('Config.js')
 // This is useful during development.
 host.setShouldFailOnDeprecatedUse(true);
 
-host.defineController("Kirkwood West", "WORM Xtouch MINI", "0.1", "766a3bd0-d1b9-11ea-8b6e-0800200c9a66", "kirkwoodwest");
+host.defineController("Kirkwood West", "WORM Xtouch MINI", "0.2", "766a3bd0-d1b9-11ea-8b6e-0800200c9a66", "kirkwoodwest");
 
 host.defineMidiPorts(1, 1);
 
@@ -84,11 +84,11 @@ function init() {
    resampleTrackName = DocResampleTrackSetting.get();  
 
    RescanSettings = docstate.getSignalSetting('Rescan','Rescan Tracks', "Rescan Tracks")
-   RescanSettings.addSignalObserver(rescanTracks);
+   RescanSettings.addSignalObserver(channelFinderRescan);
 
    //Observe if the project name changes...
    app = host.createApplication();
-   app.projectName().addValueObserver(rescanTracks);
+   app.projectName().addValueObserver(channelFinderRescan);
    
    //Setup our hardware instance.
    Hardware = new HardwareBasic(host.getMidiInPort(0), host.getMidiOutPort(0), onMidi);
@@ -109,21 +109,20 @@ function init() {
    trackHandlers.push(track_handler); 
    channelFinders.push(channel_finder);
 
-   bank = host.createTrackBank(8,0,0,false);
+   bank = host.createTrackBank(8,0,0,true);
    cursor_track = host.createCursorTrack("CURSOR_TRACK_2", "Resampler", 0,0, false);
-   cc_min = XTOUCH_RESAMPLE_CC[0];
-   cc_max = XTOUCH_RESAMPLE_CC[1];
+   cc_min = XTOUCH_MAIN_CC[0];
+   cc_max = XTOUCH_MAIN_CC[1];
    track_handler = new TrackHandler(bank, cursor_track, Hardware, cc_min, cc_max);
    channel_finder = new ChannelFinder(cursor_track, bank, resampleTrackName);
-
 
    banks.push(bank); 
    cursorTracks.push(cursor_track);
    trackHandlers.push(track_handler); 
    channelFinders.push(channel_finder);
-*/
 
-
+   //Start with selecting the first track handler
+   selectTrackHandler(0);
 
    /* */
    MidiProcesses = trackHandlers;
@@ -153,16 +152,16 @@ function selectTrackHandler(id){
       trackHandlers[1].enable(false);
 
       status = 0x90;
-      this.hardware.sendMidi(status, XTOUCH_BTN_A, 127);
-      this.hardware.sendMidi(status, XTOUCH_BTN_B, 0);
+      Hardware.sendMidi(status, XTOUCH_BTN_A, 127);
+      Hardware.sendMidi(status, XTOUCH_BTN_B, 0);
 
    } else {
       trackHandlers[0].enable(false);
       trackHandlers[1].enable(true);
 
       status = 0x90;
-      this.hardware.sendMidi(status, XTOUCH_BTN_A, 0);
-      this.hardware.sendMidi(status, XTOUCH_BTN_B, 127);
+      Hardware.sendMidi(status, XTOUCH_BTN_A, 0);
+      Hardware.sendMidi(status, XTOUCH_BTN_B, 127);
    }
 }
 
@@ -179,20 +178,8 @@ function exit() {
 }
 
 /**
- * Project Callbacks.
- */
-function rescanTracks(){
-   //Project Name CHanged
-   for(i=0; i< channelFinders.length; i++){
-      host.scheduleTask(doObject(channelFinders[i], channelFinders[i].find), 3000 + (i*200));
-   }
-}
-
-/**
  * Preferences Callbacks
 */
-
-
 function settingBankSizeChanged(){
 
 }

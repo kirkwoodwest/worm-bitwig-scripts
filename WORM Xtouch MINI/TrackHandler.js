@@ -8,7 +8,7 @@ function TrackHandler(trackBank, cursorTrack, hardware, cc_min, cc_max) {
 
    this.solo_status = [false, false, false, false, false, false, false, false];
 
-   this.activate(true);
+   this.enable(true);
 
    for (i=0;i < this.trackBank.getSizeOfBank(); i++){
       var track = this.trackBank.getItemAt(i);
@@ -52,12 +52,12 @@ TrackHandler.prototype.volumeUpdate = function(index, value){
 TrackHandler.prototype.soloUpdate = function(index, value){
 }
 
-TrackHandler.prototype.activate = function(active_bool){
-   this.active = active_bool;
+TrackHandler.prototype.enable = function(enabled_bool){
+   this.enabled_bool = enabled_bool;
 }
 
 TrackHandler.prototype.updateLed = function(){
-   if (this.active_bool == false) return;
+   if (this.enabled_bool == false) return;
 
    var i;
    for (i = 0; i < this.trackBank.getSizeOfBank (); i++){
@@ -107,7 +107,7 @@ TrackHandler.prototype.handleMidi = function(status, data1, data2) {
    println('TrackHandler.prototype.handleMidi ' + status);
    println('TrackHandler.prototype.handleMidi ' + status);
    debug_midi(status, data1, data2, 'Midi Note Handled', false);
-   if (this.active_bool == false) return;
+   if (this.enabled_bool == false) return;
    if (isNoteOn(status) && data2 > 64){
 
       if(isNoteOff(status)) println('note off');
