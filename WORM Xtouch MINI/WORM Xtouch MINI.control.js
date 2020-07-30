@@ -61,7 +61,7 @@ ColorTrackInstance = null;
 NoteOnStack = 0;  //Determines how many side buttons are pressed
 
 banks = [];
-channelFinders = [];
+channelFinder = null;
 remoteHandlers = [];
 cursorTracks = [];
 trackHandlers = [];
@@ -93,6 +93,7 @@ function init() {
    //Setup our hardware instance.
    Hardware = new HardwareBasic(host.getMidiInPort(0), host.getMidiOutPort(0), onMidi);
 
+   channelFinder = new ChannelFinder();
    //Containers for controls
    banks = []
    cursorTracks = [];
@@ -102,30 +103,29 @@ function init() {
    cc_min = XTOUCH_MAIN_CC[0];
    cc_max = XTOUCH_MAIN_CC[1];
    track_handler = new TrackHandler(bank, cursor_track, Hardware, cc_min, cc_max);
-   channel_finder = new ChannelFinder(cursor_track, bank, mainTrackName);
   
    banks.push(bank); 
    cursorTracks.push(cursor_track);
    trackHandlers.push(track_handler); 
-   channelFinders.push(channel_finder);
 
    bank = host.createTrackBank(8,0,0,true);
    cursor_track = host.createCursorTrack("CURSOR_TRACK_2", "Resampler", 0,0, false);
    cc_min = XTOUCH_MAIN_CC[0];
    cc_max = XTOUCH_MAIN_CC[1];
    track_handler = new TrackHandler(bank, cursor_track, Hardware, cc_min, cc_max);
-   channel_finder = new ChannelFinder(cursor_track, bank, resampleTrackName);
 
    banks.push(bank); 
    cursorTracks.push(cursor_track);
    trackHandlers.push(track_handler); 
-   channelFinders.push(channel_finder);
+
 
    //Start with selecting the first track handler
    selectTrackHandler(0);
 
    /* */
    MidiProcesses = trackHandlers;
+
+   host.scheduleTask(channelFinderRescan, 1000);
    
    //If your reading this... I hope you say hello to a loved one today. <3
    println("TWIST8 Initialized." + new Date());
@@ -185,8 +185,24 @@ function settingBankSizeChanged(){
 }
 
 function settingMainTrackNameChanged(value){
-   channelFinders[0].find(value);
+   println('value:' + value );
+   channelFinder.find(cursorTracks[0], value);
+
+   println('value:' + value );
+   channelFinder.findTrackBank(banks[0], value);
+
+   println('value:' + value );
 }
 function settingResampleTrackNameChanged(value){
-   channelFinders[1].find(value);
+   channelFinder.find(cursorTracks[1], value);
+   channelFinder.findTrackBank(banks[1], value);
+}
+
+function channelFinderRescan(){
+   //do nothing...
+   mainTrackName = DocMainTrackSetting.get();
+   settingMainTrackNameChanged(mainTrackName);
+
+   resampleTrackName = DocResampleTrackSetting.get(); 
+   settingResampleTrackNameChanged(resampleTrackName);
 }

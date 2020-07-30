@@ -58,11 +58,11 @@ LauncherBankSize = 128;
 
 HardwareTwister = null //Controller Instance
 HardwareCirklon = null //Controller Instance
-ColorTrackInstance = null;
+
 
 NoteOnStack = 0;  //Determines how many side buttons are pressed
 
-channelFinders = [];
+channelFinder = null;
 remoteHandlers = [];
 cursorTracks = [];
 cursorDevices = [];
@@ -72,8 +72,14 @@ twisterTrackSettings = [];
 MidiProcesses = [];
 
 function init() {
+
+   //Setup our hardware instance.
+   HardwareTwister = new HardwareBasic(host.getMidiInPort(0), host.getMidiOutPort(0), onMidiTwister);
+   HardwareCirklon = new HardwareBasic(host.getMidiInPort(1), host.getMidiOutPort(1), onMidiCirklon);
+
    //Setup Host Preferences
    Preferences = host.getPreferences();
+   
    
    PrefColorBankSizeSetting = Preferences.getNumberSetting('Color Bank Size', "Settings", 0,1024,16,'', LauncherBankSize);
    PrefColorBankSizeSetting.addValueObserver(127,settingBankSizeChanged);
@@ -81,26 +87,32 @@ function init() {
    
    //Sertup Document Preferences
    docstate = host.getDocumentState();
-   
-   DocColorTrackNameSetting = docstate.getStringSetting('Name', SETTINGS_COLOR_TRACK_NAME,8, 'MFT');
-   DocColorTrackNameSetting.addValueObserver(settingColorTrackNameChanged);
-   colorTrackName = DocColorTrackNameSetting.get();  
-   
+
+   //Channel Finder
+   channelFinder = new ChannelFinder();
+  
+   //Rescan Tracks Button
+   RescanSettings = docstate.getSignalSetting('Rescan','Rescan Tracks', "Rescan Tracks");
+   RescanSettings.addSignalObserver(rescanTracks);
+
+   //Initialize the color track
+   ColorTrackInstance = new ColorTrack(HardwareTwister, LauncherBankSize, TWISTER_COLOR_MIDI_CHANNEL, TWISTER_CC_MIN, TWISTER_CC_MAX);
+   color_track_cursor_track = ColorTrackInstance.getCursorTrack();
+   color_track_bank = ColorTrackInstance.getTrackBank();
+  
+   DocColorTrackNameSetting = new TwisterTrackSetting("COLOR_TRACK_NAME", SETTINGS_COLOR_TRACK_NAME, SETTINGS_COLOR_TRACK_NAME, color_track_cursor_track, channelFinder);
+   DocColorTrackNameSetting.setTrackBank(color_track_bank);
+  
+   twisterTrackSettings.push(DocColorTrackNameSetting);
    // TWISTER_TRACK_SETTINGS_NAMES 
    // TWISTER_CONTROLLER_ID        
    // TWISTER_CC                   
-   
-   RescanSettings = docstate.getSignalSetting('Rescan','Rescan Tracks', "Rescan Tracks");
-   RescanSettings.addSignalObserver(rescanTracks);
 
    //Observe if the project name changes...
    app = host.createApplication();
    app.projectName().addValueObserver(rescanTracks);
    
-   //Setup our hardware instance.
-   HardwareTwister = new HardwareBasic(host.getMidiInPort(0), host.getMidiOutPort(0), onMidiTwister);
-   HardwareCirklon = new HardwareBasic(host.getMidiInPort(1), host.getMidiOutPort(1), onMidiCirklon);
-
+ 
 
    //Track Banks
    banks = []
@@ -110,14 +122,12 @@ function init() {
    cursorDevices = [];
    cursorRemotePages = [];
 
-   //Channel Finders
-   channelFinders = [];
 
    //Cursor Device
    follow_mode = CursorDeviceFollowMode.FIRST_DEVICE;
 
    //START EMULATION
-   for (i=0; i< TWISTER_TRACK_SETTINGS_NAMES.length; i++){       
+   for (var i=0; i< TWISTER_TRACK_SETTINGS_NAMES.length; i++){       
       track_settings_name = TWISTER_TRACK_SETTINGS_NAMES[i];
       controller_id = TWISTER_CONTROLLER_ID[i];
       page_index = TWISTER_TRACK_TARGET_PAGE_INDEX[i];
@@ -129,16 +139,13 @@ function init() {
       //knob count
       knob_count = twister_cc_max - twister_cc_min + 1
       
-      //Create Banks, Tracks and Cursor Devices...
-      bank = host.createTrackBank(1,0,0,true) 
-      banks.push(bank);
-
       cursor_track_controller_id = controller_id + '_' + i;
-      cursorTrack = host.createCursorTrack("CURSOR_TRACK_" + i, cursor_track_controller_id, 0,0, false);
+      cursorTrack = host.createCursorTrack("CURSOR_TRACK_" + i, track_settings_name, 0,0, false);
+      channelFinder.setupCursorTracks(cursorTrack);
       cursorTracks.push(cursorTrack);
 
       cursor_device_id = "CURSOR_DEVICE_" + i;
-      cursorDevice = cursorTrack.createCursorDevice(cursor_device_id, cursor_device_id, 0, follow_mode); // CursorDeviceFollowMode.FIRST_DEVICE
+      cursorDevice = cursorTrack.createCursorDevice(cursor_device_id, track_settings_name + "_DEVICE", 0, follow_mode); // CursorDeviceFollowMode.FIRST_DEVICE
       cursorDevices.push(cursorDevice);
    
      // page_count = 1;
@@ -163,23 +170,15 @@ function init() {
          cursorRemotePages.push(cursorRemotePage);
 
          remoteHandler = new RemoteControlHandler(cursorDevice, cursorRemotePage, p_index, cc_min, cc_max, HardwareTwister, HardwareCirklon) 
-         remoteHandlers.push(remoteHandler);
-         
-         channelFinder = new ChannelFinder(cursorTrack, bank, track_settings_name);
-         channelFinders.push(channelFinder);
-   
-
-         target_channel_name = track_settings_name;
-         twisterTracKSetting = new TwisterTrackSetting(controller_id+i+p_index,target_channel_name, controller_id, channelFinder);
-         twisterTrackSettings.push( twisterTracKSetting );
-       
+         remoteHandlers.push(remoteHandler);      
       }
-
-     
+      
+      target_channel_name = TWISTER_TRACK_SETTINGS_NAMES[i];
+      twisterTrackSetting = new TwisterTrackSetting(controller_id+i+p_index, target_channel_name, controller_id+i+p_index, cursor_track, channelFinder);
+      twisterTrackSettings.push( twisterTrackSetting );
+      
    }
 
-   //Initialize the color track
-   ColorTrackInstance = new ColorTrack(HardwareTwister, LauncherBankSize, colorTrackName, TWISTER_COLOR_MIDI_CHANNEL, TWISTER_CC_MIN, TWISTER_CC_MAX);
    MidiProcesses = [ColorTrackInstance].concat(remoteHandlers);
      
    //If your reading this... I hope you say hello to a loved one today. <3
@@ -217,42 +216,17 @@ function exit() {
  * Project Callbacks.
  */
 function rescanTracks(){
-   //Project Name CHanged
-   for(i=0; i< channelFinders.length; i++){
-      host.scheduleTask(doObject(channelFinders[i], channelFinders[i].find), 3000 + (i*200));
+   for(var i=0;i<twisterTrackSettings.length;i++){
+      twisterTrackSettings[i].retargetCursor();
    }
-   ColorTrackInstance.channelFinder.find();
 }
 
 /**
  * Preferences Callbacks
 */
 
-/**
- * Called when the cc base has changed via settings...
- * @param {int} value 
- */
-function ccBaseNumberChanged(value) {
-   var ccBase = floatToRange(settingCCBaseNumber.get());
-   for(i=0;i<remoteHandlers.length;i++){
-      remoteHandlers[i].setCCBase(ccBase);
-   }
-   ColorTrackInstance.setCCBase(ccBase);
-}
-
 function settingBankSizeChanged(){
 
-}
-
-function settingColorTrackNameChanged(value){
-   ColorTrackInstance.setName(value);
-}
-
-function settingMainTrackNameChanged(value){
-   channelFinders[0].find(value);
-}
-function settingBottomTrackNameChanged(value){
-   channelFinders[1].find(value);
 }
 
 function report(){

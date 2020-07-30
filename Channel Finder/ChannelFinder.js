@@ -6,7 +6,7 @@ function ChannelFinder(){
       this.trackBank = bank = host.createTrackBank(CHANNEL_FINDER_TRACK_COUNT,0,0,true);
       
       //Mark names as interested.
-      for(i=0;i<CHANNEL_FINDER_TRACK_COUNT-1; i++){
+      for(var i=0;i<CHANNEL_FINDER_TRACK_COUNT-1; i++){
          var channel = this.trackBank.getItemAt(i);
          channel.name().markInterested();
          this.channels[i] = channel;
@@ -20,7 +20,7 @@ function ChannelFinder(){
 
  
 ChannelFinder.prototype.setupCursorTracks = function(){
-   for(i=0;i< arguments.length;i++) {
+   for(var i=0;i< arguments.length;i++) {
       cursor_track = arguments[i];
       cursor_track.isPinned().markInterested();   
    }
@@ -33,7 +33,7 @@ ChannelFinder.prototype.find = function(cursor_track, name){
       this.name = name;
    }
 
-   for(i=0;i<CHANNEL_FINDER_TRACK_COUNT-1; i++){
+   for(var i=0;i<CHANNEL_FINDER_TRACK_COUNT-1; i++){
       channel = this.channels[i];
       channel_name = channel.name().get();
 

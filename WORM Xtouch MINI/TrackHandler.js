@@ -83,8 +83,6 @@ TrackHandler.prototype.updateLed = function(){
       var status = 0xB0;
      // this.hardware.sendMidi(status, cc, 2);
 
-     
-
    }
 
    //Update Solo LED
@@ -110,27 +108,20 @@ TrackHandler.prototype.handleMidi = function(status, data1, data2) {
    if (this.enabled_bool == false) return;
    if (isNoteOn(status) && data2 > 64){
 
-      if(isNoteOff(status)) println('note off');
-      // switch (data1)
-      // {
-      //     case XTOUCH_RESET_FADER_NOTE:
-      //        //reset all faders to max.
-      //       for (i=0;i < this.trackBank.getSizeOfBank(); i++){
-      //          var track = this.trackBank.getItemAt(i);
-      //       //   track.solo().set(VOLUME_MAX_CC, 127);
-      //       }
-         
-      //       return true;
-      // }
-      // var min = XTOUCH_BTN_ROW_1[0];
-      // var max = XTOUCH_BTN_ROW_1[XTOUCH_BTN_ROW_1.length-1];
 
-      
-     
+      if (data1 == XTOUCH_BTN_ROW_2[0]) {
+         //reset all faders to max.
+         for (var i=0;i < this.trackBank.getSizeOfBank(); i++){
+            var track = this.trackBank.getItemAt(i);
+            //reset Track Bank...
+            println('reset track bank')
+            track.volume().set(VOLUME_MAX_CC, 127);
+            
+         }
+      }
+
       index = XTOUCH_BTN_ROW_1.indexOf(data1);
 
-      println(data1);
-      println('index : ' + index);
       if (index != -1){
 
          solo_status = this.solo_status[index];

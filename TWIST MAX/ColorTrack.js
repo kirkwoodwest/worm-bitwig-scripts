@@ -4,17 +4,24 @@ Constants
 const INIT_WAIT_TIME = 2000;   //Wait time until init.
 const RESTART_DOCUMENT_CHANNEL_SEARCH_TIME = 1000; //Wait time between channel searches.
 
+ColorTrackInstance = null;
+
 /**
  * 
  * @param {Number} bankSize Size of Bank necessary to determine how many color clips this script can manage...
- * @param {String} colorTrackName Name of the color track to match to..
  */
-function ColorTrack(hardwareTwister, bankSize, colorTrackName, color_midi_channel, cc_min, cc_max) {
+function ColorTrack(hardwareTwister, bankSize, color_midi_channel, cc_min, cc_max) {
    this.hardwareTwister = hardwareTwister;
-   this.colorTrackName = colorTrackName;
    this.color_midi_channel = color_midi_channel;
    this.status = 0xB0 | color_midi_channel;
    this.playingSlotIndex = -1;
+
+   this.bank_content_slots = [];
+   for(i=0;i<bankSize; i++){
+      this.bank_content_slots[i] = null;
+   }
+
+   this.clip_names = [];
 
    this.enableEditToggle = false;
 
@@ -40,14 +47,13 @@ function ColorTrack(hardwareTwister, bankSize, colorTrackName, color_midi_channe
    this.cursorClip = this.cursorTrack.createLauncherCursorClip('COLOR_CURSOR_CLIP_1', 'Color Clip',1,1);
    this.cursorTrack.isPinned().markInterested();
 
-   //Channel Finder
-   this.channelFinder = new ChannelFinder(this.cursorTrack, this.trackBank);
-   this.channelFinder.find(colorTrackName);
-
    //Get Slots
    var track = this.trackBank.getItemAt(0);
    this.slotBank = track.clipLauncherSlotBank();
    this.slotBank.addIsPlayingObserver(doObject(this, this.playingStatusChanged));
+   //
+   this.slotBank.addHasContentObserver(doObject(this, this.contentChanged));
+   
    this.slotBank.setIndication(true)
 
    for (i=0;i < this.slotBank.getSizeOfBank(); i++){
@@ -55,6 +61,10 @@ function ColorTrack(hardwareTwister, bankSize, colorTrackName, color_midi_channe
 
       name = slot.name();
       name.markInterested();
+      
+      var callback_func = makeIndexedFunction(i, doObject(this, this.slotNameChanged));
+      name.addValueObserver(callback_func);
+     // slot.hasContent().markInterested();
    }
 }
 
@@ -64,28 +74,6 @@ ColorTrack.prototype.handleMidi = function(status, data1, data2){
       this.enableEditToggle = !this.enableEditToggle
       ColorTrackInstance.enableEdit(this.enableEditToggle);
    }
-   //    }
-
-      //toggle on or off...
-
-   // if(isNoteOn(status)){
-
-   //    if(NoteOnStack==1) {
-   //       ColorTrackInstance.randomizeColors();
-   //       ColorTrackInstance.writeData();
-   //    }
-   //    NoteOnStack++;
-   //    ColorTrackInstance.enableEdit(true);
-   //    return true;
-
-   // } else if (isNoteOff(status)) {
-
-   //    if(NoteOnStack==1) {
-   //       ColorTrackInstance.enableEdit(false);
-   //    }
-   //    NoteOnStack--;
-   //    return true;
-   // }
 
    //Store Knob Values...
    var cc = parseInt(data1);
@@ -134,14 +122,6 @@ ColorTrack.prototype.randomizeColors = function() {
 }
 
 /**
- * Changes the name for the color track and attempts to find the channel again.
- */
-ColorTrack.prototype.setName = function(name){
-   this.colorTrackName = name;
-   this.channelFinder.find( this.colorTrackName );
-}
-
-/**
  * Returns the color values in a string format.
  */
 ColorTrack.prototype.dataToString = function(){
@@ -161,10 +141,46 @@ ColorTrack.prototype.playingStatusChanged = function(slot_index, is_playing){
    }
 }
 
+/**
+ * Called when playing status changes...
+ */
+ColorTrack.prototype.slotNameChanged = function(slot_index, name){
+   println(name);
+   this.clip_names[slot_index] = name;
+}
+
+ColorTrack.prototype.contentChanged = function(slot_index, has_clip){
+   println('content changed');
+   println('content slot_index: ' + slot_index);
+   println('content has_clip: ' + has_clip);
+   has_clip_stored = this.bank_content_slots[slot_index];
+   this.bank_content_slots[slot_index] = has_clip;
+}
+
 
 ColorTrack.prototype.readData = function() {
-   if (this.channelFinder.channelFound == false || this.playingSlotIndex == -1 ){ 
+   if (this.playingSlotIndex == -1 ){ 
      // host.scheduleTask(doObject(this, this.readData), RESTART_DOCUMENT_CHANNEL_SEARCH_TIME); 
+      return;
+   }
+
+
+
+   
+   playing_slot = this.bank_content_slots[this.playingSlotIndex]
+   playing_slot_name = this.clip_names[this.playingSlotIndex];
+
+   if(playing_slot_name == '') return;
+
+   println('read data-------');
+   println('read data-------');
+   println('playing slot: ' +playing_slot);
+   println('this.playingSlotIndex: ' + this.playingSlotIndex);
+   println('playing_slot_name: ' + playing_slot_name);
+   if(playing_slot == false || playing_slot == null) {
+      println('playing slot: ' +playing_slot);
+      println('this.playingSlotIndex: ' + this.playingSlotIndex);
+      println('SKIPPING READ: ' + this.playingSlotIndex);
       return;
    }
   
@@ -244,3 +260,12 @@ ColorTrack.prototype.knobValuesUpdate = function(cc, data2){
    index = this.cc_to_index[cc];
    this.mft_knob_values[index] = data2;
 }
+
+ColorTrack.prototype.getCursorTrack = function(){
+   return this.cursorTrack;
+}
+
+ColorTrack.prototype.getTrackBank = function(){
+   return this.trackBank;
+}
+
