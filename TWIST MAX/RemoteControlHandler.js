@@ -1,5 +1,3 @@
-
-
 function RemoteControlHandler (cursorDevice, remoteControlsBank, page_index, twister_cc_min, twister_cc_max, hardware_twister, hardware_cirklon) {
    this.cursorDevice = cursorDevice;
    this.remoteControlsBank = remoteControlsBank;
@@ -88,7 +86,7 @@ RemoteControlHandler.prototype.handleMidi = function (status, data1, data2) {
          print('undefined or null')
          return;
       }
-      
+
       if (index != undefined) {
          this.remoteControlsBank.getParameter(index).set(data2, 128);        
          return true;
