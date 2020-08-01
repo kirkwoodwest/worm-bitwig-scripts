@@ -35,3 +35,26 @@ function makeIndexedFunction(index, f)
 	};
 }
 
+function decimalToHex(decimal, chars) {
+  return (decimal + Math.pow(16, chars)).toString(16).slice(-chars).toUpperCase();
+}
+
+function wrapSysexMessage(sysexArray){
+  var sysexString = ""
+  for(var i=0;i<sysexArray.length;i++){
+    if(i>0) sysexString = sysexString + " ";
+    var val = sysexArray[i];
+    sysexString = sysexString + decimalToHex(val, 2);
+  }
+  return sysexString;
+}
+
+function joinSysexMessage(){
+  var sysexString = ""
+  for(var i=0;i<arguments.length;i++){
+    if(i>0) sysexString = sysexString + " ";
+    var val = arguments[i];
+    sysexString = sysexString + val;
+  }
+  return sysexString;
+}

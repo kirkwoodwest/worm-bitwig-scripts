@@ -1,7 +1,7 @@
 load("Config.js")
 load('../WORM_UTILS/WORM_UTIL.js')
 load('../WORM_UTILS/ChannelFinder.js')
-load("HardwareBasic.js");
+load("../Common/HardwareBasic.js");
 load("TwisterTrackSetting.js");
 load('RemoteControlHandler.js')
 load('ColorTrack.js')

@@ -1,7 +1,7 @@
 loadAPI(12);
 load('../WORM_UTILS/WORM_UTIL.js')
 load('../WORM_UTILS/ChannelFinder.js')
-load("HardwareBasic.js");
+load("../Common/HardwareBasic.js");
 load('TrackHandler.js')
 load('RemoteControlHandler.js')
 load('Config.js')
