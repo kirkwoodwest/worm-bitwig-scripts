@@ -154,7 +154,7 @@ function init() {
  
       //knob count
       var knob_count = LAUNCH_CONTROL_TRACK1_CONTROLS.length;
-      cursorTrack = host.createCursorTrack("SEND_CURSOR_TRACK_" + i, "MIXER" + i, 0,0, false);
+      cursorTrack = host.createCursorTrack("SEND_CURSOR_TRACK_" + i, "SEND_MIXER" + i, 0,0, false);
       channelFinder.setupCursorTracks(cursorTrack);
       cursorTracks.push(cursorTrack);
 
