@@ -130,7 +130,6 @@ function init() {
    for (var i=0; i< TWISTER_TRACK_SETTINGS_NAMES.length; i++){       
       track_settings_name = TWISTER_TRACK_SETTINGS_NAMES[i];
       controller_id = TWISTER_CONTROLLER_ID[i];
-      page_index = TWISTER_TRACK_TARGET_PAGE_INDEX[i];
       page_count = TWISTER_PAGE_COUNT[i];
       twister_cc = TWISTER_CC[i];
       twister_cc_min = twister_cc[0];
@@ -149,21 +148,23 @@ function init() {
       cursorDevices.push(cursorDevice);
    
      // page_count = 1;
-      for(p_index = 0; p_index<page_count;p_index++){
+      for(var p_index = 0; p_index<page_count;p_index++){
 
          cc_min = twister_cc_min;
          cc_max = twister_cc_max;
 
          //more than 8 knobs so we need to calculate offset...
          if ( (twister_cc_max - twister_cc_min) > 8 ) {
-            offset = p_index * 8;
+            offset = p_index * 8; //8 parameters possible per page.
             cc_min = twister_cc_min + offset;
             cc_max = twister_cc_min + offset + 7;
-            knob_count = 8;
+            
+            //Do not exceed the max number of items.
+            if(cc_max > twister_cc_max) cc_max = twister_cc_max;
+         
+            knob_count = cc_max - cc_min+1;
          }
 
-         page_index = 0;
-    
          //Custom Remote Handler Class
          cursor_remote_page_id = "CURSOR_REMOTE_" +  i + "_" + p_index;
          cursorRemotePage = cursorDevice.createCursorRemoteControlsPage(cursor_remote_page_id, knob_count,'');
@@ -182,7 +183,7 @@ function init() {
    MidiProcesses = [ColorTrackInstance].concat(remoteHandlers);
      
    //If your reading this... I hope you say hello to a loved one today. <3
-   println("TWIST8 Initialized." + new Date());
+   println("TWIST MAX Initialized." + new Date());
    println("Now make some dope beats...");
 }
 
@@ -227,37 +228,4 @@ function rescanTracks(){
 
 function settingBankSizeChanged(){
 
-}
-
-function report(){
-   println('report()')
-   println('report()' + cursorRemotePages)
-   println('report()' + cursorRemotePages.length)
-   
-   for(var i=0;i<cursorRemotePages.length;i++){
-      println('selected page index' + cursorRemotePages[i].selectedPageIndex().get());
-      println('selected page count' + cursorRemotePages[i].pageCount().get());
-
-   }
-}
-function selectPage(page_index){
-   println('report()')
-   println('report()' + cursorRemotePages)
-   println('report()' + cursorRemotePages.length)
-   
-   for(var i=0;i<cursorRemotePages.length;i++){
-      println('selected page index' + cursorRemotePages[i].selectedPageIndex().set(page_index));
-
-   }
-}
-function resetPages(){
-   println('report()')
-   println('report()' + cursorRemotePages)
-   println('report()' + cursorRemotePages.length)
-   
-   for(var i=0;i<remoteHandlers.length;i++){
-      remoteHandlers[i].resetPage();
-      println('selected page index' + cursorRemotePages[i].selectedPageIndex().set(page_index));
-
-   }
 }

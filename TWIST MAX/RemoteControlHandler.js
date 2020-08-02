@@ -8,17 +8,15 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank, page_index, twi
    this.hardware_cirklon = hardware_cirklon;
 
    this.cc_list = [];
-   index = 0;
-   for(i=twister_cc_min;i<=twister_cc_max;i++){
+   var index = 0;
+   for(var i=twister_cc_min;i<=twister_cc_max;i++){
       this.cc_list[index] = i;
       index++;
    }
 
-   this.cc_translation = [];
-   this.ccBase = 0;
-
    //Build reverse lookup table
-   for(i = 0;i<this.cc_list.length;i++){
+   this.cc_translation = [];
+   for(var i = 0; i<this.cc_list.length;i++){
       this.cc_translation[ parseInt(this.cc_list[i]) ] = i;
    }
 
@@ -26,8 +24,7 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank, page_index, twi
    this.remoteControlsBank.pageNames().markInterested();
    this.remoteControlsBank.pageNames().addValueObserver(doObject(this, this.pageNamesChanged));
 
-   var i;
-   for (i = 0; i < this.remoteControlsBank.getParameterCount(); i++) {
+   for (var i = 0; i < this.remoteControlsBank.getParameterCount(); i++) {
       var callback_func = makeIndexedFunction(i, doObject(this, this.remoteUpdate));
       var parameter = this.remoteControlsBank.getParameter(i);
       parameter.value().addValueObserver(128,callback_func);
@@ -50,8 +47,7 @@ RemoteControlHandler.prototype.resetPage = function(){}
 
 RemoteControlHandler.prototype.setIndication = function (enable)
 {
-   var i;
-   for (i = 0; i < this.remoteControlsBank.getParameterCount (); i++){
+   for (var i = 0; i < this.remoteControlsBank.getParameterCount (); i++){
       var parameter = this.remoteControlsBank.getParameter(i);
       parameter.setIndication (enable);
    }
@@ -81,9 +77,7 @@ RemoteControlHandler.prototype.handleMidi = function (status, data1, data2) {
       if (cc < this.twister_cc_min || cc > this.twister_cc_max) return;
 
       index = this.cc_translation[parseInt(data1)];
-
       if(index == undefined || index == null) {
-         print('undefined or null')
          return;
       }
 

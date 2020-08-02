@@ -145,15 +145,10 @@ ColorTrack.prototype.playingStatusChanged = function(slot_index, is_playing){
  * Called when playing status changes...
  */
 ColorTrack.prototype.slotNameChanged = function(slot_index, name){
-   println(name);
    this.clip_names[slot_index] = name;
 }
 
 ColorTrack.prototype.contentChanged = function(slot_index, has_clip){
-   println('content changed');
-   println('content slot_index: ' + slot_index);
-   println('content has_clip: ' + has_clip);
-   has_clip_stored = this.bank_content_slots[slot_index];
    this.bank_content_slots[slot_index] = has_clip;
 }
 
@@ -165,26 +160,17 @@ ColorTrack.prototype.readData = function() {
    }
 
 
+   var playing_slot = this.bank_content_slots[this.playingSlotIndex]
+   var playing_slot_name = this.clip_names[this.playingSlotIndex];
 
-   
-   playing_slot = this.bank_content_slots[this.playingSlotIndex]
-   playing_slot_name = this.clip_names[this.playingSlotIndex];
-
+   //If no name in the slot return;
    if(playing_slot_name == '') return;
 
-   println('read data-------');
-   println('read data-------');
-   println('playing slot: ' +playing_slot);
-   println('this.playingSlotIndex: ' + this.playingSlotIndex);
-   println('playing_slot_name: ' + playing_slot_name);
-   if(playing_slot == false || playing_slot == null) {
-      println('playing slot: ' +playing_slot);
-      println('this.playingSlotIndex: ' + this.playingSlotIndex);
-      println('SKIPPING READ: ' + this.playingSlotIndex);
-      return;
-   }
-  
-   colors_array = [];
+   //If no slot do nothing and return
+   if(playing_slot == false || playing_slot == null) return;
+ 
+   //Build colors array
+   var colors_array = [];
    for(i=0;i<this.total_knobs;i++){
       colors_array[i] = 0;
    }
@@ -217,8 +203,7 @@ ColorTrack.prototype.writeData = function(){
 
    //Turn Data into string
    string = this.dataToString();
-   
-   println("write data" + string);
+
    //Make sure we are playing a slot...
    if(this.playingSlotIndex == -1) return;
 
