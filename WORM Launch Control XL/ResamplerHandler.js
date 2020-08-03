@@ -11,6 +11,21 @@ function ResamplerHandler(trackBank, cursorTrack, hardware, resample_btn, leds) 
    this.led_queue_play = leds[3];
    this.led_play = leds[4];
 
+   this.time_index = -1;
+
+   this.transport = host.createTransport();
+   
+   this.transport.getPosition().markInterested();
+  // host.defaultBeatTimeFormatter()
+  // this.transport.getPosition().addValueObserver ( doObject(this, this.transportUpdate) );
+   println(this.transport);
+   println(this.transport.getPosition());
+
+   //Depreciated
+  // this.transport.getPosition().addTimeObserver(":", 3, 2, 2, 2, doObject(this, this.transportUpdate));
+
+   //    this.transport.getPosition ().addTimeObserver (":", 3, 2, 2, 2, doObject (this, TransportProxy.prototype.handlePosition
+
    //Make trackbank follow cursor...
    trackBank.followCursorTrack(cursorTrack);
    
@@ -41,11 +56,13 @@ ResamplerHandler.prototype.handleMidi = function(status, data1, data2) {
             var track = this.trackBank.getItemAt(i);
             var clipLauncherBank = track.clipLauncherSlotBank();
             var clip_launcher_slot = clipLauncherBank.getItemAt(0);
-            
+            this.clip_launcher_slot = clip_launcher_slot;
             if (clip_launcher_slot.isRecording().get() == true) {
                clip_launcher_slot.launch();
+               this.time_index = -1;
             } else {
                clip_launcher_slot.record();
+               this.time_index = this.transport.getPosition().getFormatted();
             }
          }      
       
@@ -54,6 +71,15 @@ ResamplerHandler.prototype.handleMidi = function(status, data1, data2) {
    }
 }
 
+ResamplerHandler.prototype.launchSlots = function() {
+      for (i=0;i < this.trackBank.getSizeOfBank(); i++){
+         var track = this.trackBank.getItemAt(i);
+         var clipLauncherBank = track.clipLauncherSlotBank();
+         var clip_launcher_slot = clipLauncherBank.getItemAt(0);
+         clip_launcher_slot.launch();
+         this.time_index = -1;
+      }      
+}
 
 ResamplerHandler.prototype.isRecording = function(val){
    if(val==true) this.hardware.sendSysex(this.led_record);
@@ -70,4 +96,8 @@ ResamplerHandler.prototype.isRecordingQueued = function(val){
 ResamplerHandler.prototype.isPlaying = function(val){
    if(val==true) this.hardware.sendSysex(this.led_play);
    if(val==false) this.hardware.sendSysex(this.led_ready);
+}
+
+ResamplerHandler.prototype.transportUpdate = function(val){
+   print('transport: ' + val);
 }

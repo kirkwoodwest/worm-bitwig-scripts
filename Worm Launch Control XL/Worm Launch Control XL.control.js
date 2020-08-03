@@ -185,6 +185,23 @@ function flush() {
       rescanTracks();
       first_flush = false;
    }
+   println('flushie')
+
+   if (resamplerHandlers[0].time_index != -1){
+      var pos = resamplerHandlers[0].transport.getPosition().getFormatted();
+      var old_pos = resamplerHandlers[0].time_index;
+      println('new time index: ' + pos);
+      println('old time index: ' + old_pos);
+
+      var bars = pos.split(':')[0];
+      var bars_old = old_pos.split(':')[0];
+
+      var diff = bars - bars_old;
+      if(diff >= 4) resamplerHandlers[0].launchSlots();
+      println('should we play?: ' + (pos > old_pos));
+      println('should we diff?: ' + (diff));
+   }
+   
 }
 
 function exit() {
