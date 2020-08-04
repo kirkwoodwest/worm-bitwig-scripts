@@ -26,7 +26,8 @@ TwisterTrackSetting.prototype.setTrackBank = function(trackBank) {
 
 //Move cursor 
 TwisterTrackSetting.prototype.retargetCursor = function(){
-   this.channel_finder.find(this.cursor_track, this.target_channel_name);
+   println('cursor track' + this.cursor_track);
+   if (this.cursor_track) this.channel_finder.find(this.cursor_track, this.target_channel_name);
 }
 
 

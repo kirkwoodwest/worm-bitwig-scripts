@@ -3,6 +3,7 @@ load('../WORM_UTILS/WORM_UTIL.js')
 load('../WORM_UTILS/ChannelFinder.js')
 load('ResamplerHandler.js')
 load('RemoteControlHandler.js')
+load('LoopLengthHandler.js')
 load('TrackSendHandler.js')
 load('Config.js')
 loadAPI(12);
@@ -52,6 +53,9 @@ cursorRemotePages = [];
 remoteHandlers = [];
 trackSendHandlers = [];
 
+transport = null;
+loopLengthHandler = null;
+
 first_flush = true;
 
 function init() {
@@ -65,10 +69,25 @@ function init() {
 
    Hardware = new HardwareBasic(host.getMidiInPort(0), host.getMidiOutPort(0), onMidi);
 
+   //Setup Bass LEDS
+   //Select Launch Control Factory Setting
+   Hardware.sendSysex(LAUNCH_CTRL_SELECT_TEMPLATE);
+
+   //Set up Blink LED
+   Hardware.sendMidi(176+LAUNCH_CTRL_SYSEX_TEMPLATE_ID, 0, 40);
+   //Init Color State
+   Hardware.sendSysex(LAUNCH_LED_INIT);
+
    //Rescan Tracks Button
    var RescanSettings = docstate.getSignalSetting('Rescan','Rescan Tracks', "Rescan Tracks");
    RescanSettings.addSignalObserver(rescanTracks);
 
+   //Handler for loop length
+   transport = this.transport = host.createTransport();
+   loopLengthHandler = new LoopLengthHandler(transport, Hardware);
+   loopLengthHandler.setRecordLength(2);
+
+   MidiProcesses.push(loopLengthHandler);
 
    bankMain = bank;
 
@@ -78,15 +97,11 @@ function init() {
    var resampler_leds = LAUNCH_LED_RESAMPLE1_LEDS;
    var resampler_1 = [channel_count, resampler_btn, resampler_leds];
 
-   println('resampler_leds:' + resampler_leds);
-
    var channel_count = 1;
    var resampler_btn = LAUNCH_CONTROL_RESAMPLER2_BTN;
    var resampler_leds = LAUNCH_LED_RESAMPLE2_LEDS;
    var resampler_2 = [channel_count, resampler_btn, resampler_leds];
-   var resamplers = [resampler_1, resampler_2]
-
-   println('resampler_leds:' + resampler_leds);
+   var resamplers = [resampler_1, resampler_2];
 
    //Create REsamp
    for (var i=0;i<resamplers.length;i++) {
@@ -103,7 +118,7 @@ function init() {
       var bank = host.createTrackBank(channel_count, num_sends, num_scenes, has_flat_track_list);
    
       var cursorTrack = host.createCursorTrack("RESAMPLER_CURSOR_TRACK" + i, "Resampler" + i, 0,0, true);
-      var resampler_handler = new ResamplerHandler(bank, cursorTrack, Hardware, resampler_btn, resampler_leds);
+      var resampler_handler = new ResamplerHandler(bank, cursorTrack, loopLengthHandler, Hardware, resampler_btn, resampler_leds);
       resamplerHandlers.push(resampler_handler);
 
       //Set up channel finder
@@ -163,13 +178,7 @@ function init() {
       MidiProcesses.push(trackSendHandler);
    }
 
-   //Select Launch Control Factory Setting
-   Hardware.sendSysex(LAUNCH_CTRL_SELECT_TEMPLATE);
 
-   //Set up Blink LED
-   Hardware.sendMidi(176+LAUNCH_CTRL_SYSEX_TEMPLATE_ID, 0, 40);
-   //Init Color State
-   Hardware.sendSysex(LAUNCH_LED_INIT);
   
    println("Worm Launch Control XL initialized!");
 }
@@ -185,23 +194,8 @@ function flush() {
       rescanTracks();
       first_flush = false;
    }
-   println('flushie')
 
-   if (resamplerHandlers[0].time_index != -1){
-      var pos = resamplerHandlers[0].transport.getPosition().getFormatted();
-      var old_pos = resamplerHandlers[0].time_index;
-      println('new time index: ' + pos);
-      println('old time index: ' + old_pos);
-
-      var bars = pos.split(':')[0];
-      var bars_old = old_pos.split(':')[0];
-
-      var diff = bars - bars_old;
-      if(diff >= 4) resamplerHandlers[0].launchSlots();
-      println('should we play?: ' + (pos > old_pos));
-      println('should we diff?: ' + (diff));
-   }
-   
+   loopLengthHandler.handleFlush();
 }
 
 function exit() {

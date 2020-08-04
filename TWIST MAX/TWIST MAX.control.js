@@ -5,6 +5,7 @@ load("../Common/HardwareBasic.js");
 load("TwisterTrackSetting.js");
 load('RemoteControlHandler.js')
 load('ColorTrack.js')
+load('ParameterSaver.js')
 
 loadAPI(12);
 
@@ -44,12 +45,12 @@ PrefTopKnobsSetting = null;
 PrefBottomKNobsSetting = null;
 
 const SETTINGS_COLOR_TRACK_NAME = 'Color Track';
-const SETTINGS_TOP_TRACK_NAME = 'Top Track';
-const SETTINGS_BOTTOM_TRACK_NAME = 'Bottom Track';
+const SETTINGS_PARAM_TRACK_NAME = 'Parameter Track'
+
 
 DocColorTrackNameSetting = null; //Settings for the color track name
-DocTopTrackNameSetting = null//Setting for top track name
-DocBottomTrackNameSetting = null//Setting for bottom track name
+
+DocParamSaverTrackNameSetting = null;
 
 //Size of the bank
 PrefColorBankSizeSetting = null; //
@@ -58,6 +59,8 @@ LauncherBankSize = 128;
 
 HardwareTwister = null //Controller Instance
 HardwareCirklon = null //Controller Instance
+
+paramSaver = null;
 
 
 NoteOnStack = 0;  //Determines how many side buttons are pressed
@@ -181,7 +184,17 @@ function init() {
    }
 
    MidiProcesses = [ColorTrackInstance].concat(remoteHandlers);
-     
+
+   //TODO: Build settings for param saver...,
+   paramSaver = new ParameterSaver(HardwareTwister, LauncherBankSize, remoteHandlers)
+
+   var cursor_track = paramSaver.getCursorTrack();
+   var track_bank = paramSaver.getTrackBank();
+   DocParamSaverTrackNameSetting = new TwisterTrackSetting("PARAM_SAVER_NAME", SETTINGS_PARAM_TRACK_NAME, SETTINGS_PARAM_TRACK_NAME, cursor_track, channelFinder);
+   DocParamSaverTrackNameSetting.setTrackBank(track_bank);
+
+   MidiProcesses.push(paramSaver);
+
    //If your reading this... I hope you say hello to a loved one today. <3
    println("TWIST MAX Initialized." + new Date());
    println("Now make some dope beats...");

@@ -88,3 +88,11 @@ RemoteControlHandler.prototype.handleMidi = function (status, data1, data2) {
    }
    return false;    
 }
+
+RemoteControlHandler.prototype.getRemoteControlsBank = function(){
+   return this.remoteControlsBank;
+}
+
+RemoteControlHandler.prototype.getCCList = function(){
+   return this.cc_list;
+}
