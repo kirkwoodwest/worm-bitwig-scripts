@@ -54,7 +54,9 @@ ChannelFinder.prototype.find = function(cursor_track, name){
          
       }
 
+      
       if (channel_name == name) {
+         println('find: channel: ' + channel_name);
          name = true;
          cursor_track.selectChannel(channel);
          cursor_track.isPinned().set(true);

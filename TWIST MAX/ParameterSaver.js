@@ -1,5 +1,5 @@
 ParameterSaverInstance = null;
-const PARAMETER_SAVER_PRECISION = 3;
+const PARAMETER_SAVER_PRECISION = 4;
 
 /**
  * 
@@ -32,26 +32,20 @@ function ParameterSaver(hardwareTwister, bankSize, remoteHandlers) {
    this.enableEditToggle = false;
 
    this.total_knobs = cc_max - cc_min + 1;
-   this.cc_min = cc_min;
-   this.cc_max = cc_max;
-
-   this.cc_to_index = [];
-   index = 0;
-   for(i=cc_min;i<=cc_max;i++){
-      this.cc_to_index[i] = index;
-      index++;
-   }
 
    this.mft_color_values = new Array(this.total_knobs); 
    this.mft_knob_values = new Array(this.total_knobs); 
   
    //Create Track Bank
    this.trackBank = host.createTrackBank(1, 0, bankSize);
+   
 
    //Create Cursor Track and Cursor Clip
    this.cursorTrack = host.createCursorTrack("PARAM_SAVER_CURSOR", "Param Track", 0,0, true);
    this.cursorClip = this.cursorTrack.createLauncherCursorClip('PARAM_SAVER_CURSOR', 'Param Clip',1,1);
    this.cursorTrack.isPinned().markInterested();
+
+   this.trackBank.followCursorTrack(this.cursorTrack);
 
    this.buildDataSet(remoteHandlers);
 
@@ -74,43 +68,36 @@ function ParameterSaver(hardwareTwister, bankSize, remoteHandlers) {
 }
 
 ParameterSaver.prototype.handleMidi = function(status, data1, data2){
-   println('restore knob vals')
-   this.reportKnobValues();
-   return false;
-   //Deal with color track input...
+
+   //TODO: Clean this up somewhat, needs to somehow work with color track at the same time.
+   //maybe not handle the midi but an event to enable/disable from the parent script. for both color track and param saver.
+
+
    if(isNoteOn(status)){
-      this.enableEditToggle = !this.enableEditToggle
-      ParameterSaverInstance.enableEdit(this.enableEditToggle);
+      this.enableEditToggle = !this.enableEditToggle;
+      if (this.enableEditToggle == false) {
+         this.writeData();
+      }
    }
 
-   //Normal knobs just go thru the game...
-   return false;   
-}
-
-ParameterSaver.prototype.enableEdit = function(isEnabled){
-   if(isEnabled == true) {
-      //Store off current knob positions
-      //Get colors from clip and send to twister knobs
-      this.restoreKnobColorValues();
-   } else {
-      //Restore Knob positions...
-      this.restoreKnobCCValues();
-      this.writeData();
-   }
-   this.editEnabled = isEnabled;
+   //Flow thru...
+   return false;
 }
 
 /**
  * Returns the color values in a string format.
  */
 ParameterSaver.prototype.dataToString = function(){
-   return this.mft_color_values.toString();
+   var datas = this.getKnobValuesFromSet();
+   var knob_values = datas[1];
+   return knob_values.toString();
 }
 
 /**
  * Called when playing status changes...
  */
 ParameterSaver.prototype.playingStatusChanged = function(slot_index, is_playing){
+   println('playingStatusChanged: ' + slot_index + '___ ' + is_playing)
    if (is_playing == true){
       this.playingSlotIndex = slot_index;
       this.readData();
@@ -137,7 +124,6 @@ ParameterSaver.prototype.readData = function() {
       return;
    }
 
-
    var playing_slot = this.bank_content_slots[this.playingSlotIndex]
    var playing_slot_name = this.clip_names[this.playingSlotIndex];
 
@@ -147,12 +133,20 @@ ParameterSaver.prototype.readData = function() {
    //If no slot do nothing and return
    if(playing_slot == false || playing_slot == null) return;
  
-   //Build colors array
-   var colors_array = [];
-   for(i=0;i<this.total_knobs;i++){
-      colors_array[i] = 0;
-   }
- 
+   var read_knob_array = [];
+
+   read_knob_array = playing_slot_name.toString();
+
+   var knob_and_cc_values = this.getKnobValuesFromSet();
+   var cc_list = knob_and_cc_values[0];
+   
+
+   print
+
+   println('cc_list' + cc_list)
+   println('knob_values' + knob_values)
+
+   //TODO: Fix comments like this...
    //Check to see if there already is a color in the clip slot
    var track = this.trackBank.getItemAt(0);
    var launcherslotBank = track.clipLauncherSlotBank();
@@ -160,23 +154,37 @@ ParameterSaver.prototype.readData = function() {
    name = slot.name().get();
 
    //Is the clip name empty?
-   if (name != '') colors_array = name.split(',');
+   if (name != '') knob_array = name.split(',');
 
-   //Loop thru array and send color data to hardware...
-   var index = 0;
-   for(var cc_index = this.cc_min; cc_index<=this.cc_max; cc_index++){
-      var val = colors_array[index];
-      this.hardwareTwister.sendMidi(this.status, cc_index, val);    
-      index++;  
+   var knob_values = knob_array;
+
+   var channel = 0;
+   var status = 0xB0 | channel;
+
+   var knob_values_index = 0;
+
+   for (var i = 0; i < this.data_sets.length; i++) {
+      var data_set = this.data_sets[i];
+
+      var control_bank = data_set[0];
+      var cc_list = data_set[1];
+      var count = control_bank.getParameterCount();
+      
+      for(var cb=0;cb<count;cb++){
+         var knob_value = knob_values[knob_values_index];
+         var parameter = control_bank.getParameter(cb);
+         var knob_value_float = knob_value/127
+         parameter.value().set(knob_value, 127);
+         println('knob value ' + knob_value);
+         println('i ' + i);
+         println('cb ' + cb);
+         println('knob_values_index ' + knob_values_index);
+         knob_values_index++;
+      }
    }
-
-   this.mft_color_values = colors_array;
-   string = this.dataToString();
-
-   launcherslotBank.showInEditor(this.playingSlotIndex);
-   this.cursorClip.setName(string);
 }
 
+//Wires the data to a string
 ParameterSaver.prototype.writeData = function(){
 
    //Turn Data into string
@@ -196,14 +204,8 @@ ParameterSaver.prototype.writeData = function(){
    this.cursorClip.setName(string);
 }
 
-ParameterSaver.prototype.restoreKnobCCValues = function(){
-   this.restoreKnobValues(this.mft_knob_values);
-}
 
-ParameterSaver.prototype.restoreKnobColorValues = function(){
-   this.restoreKnobValues(this.mft_color_values);
-}
-
+//restores all the knob values from the settings.
 ParameterSaver.prototype.restoreKnobValues = function(value_array) {
    var channel = 0;
    var status = 0xB0 | channel;
@@ -217,17 +219,23 @@ ParameterSaver.prototype.restoreKnobValues = function(value_array) {
       
       for(var cb=0;cb<count;cb++){
          var parameter = control_bank.getParameter(cb);
-         var cc_value = parameter.value().get();
+         var cc_value_float = parameter.value().get();
+
+         //reduce precision of float
+         var cc_value = cc_value_float.toFixed(PARAMETER_SAVER_PRECISION) * 127;
          var cc_target = cc_list[cb];
          this.hardwareTwister.sendMidi(status, cc_target, cc_value);
+
+         println('knobValue: ' + cc_target + ' : ' + cc_value);
       }
    }
 }
 
-ParameterSaver.prototype.reportKnobValues = function(value_array) {
+ParameterSaver.prototype.getKnobValuesFromSet = function(value_array) {
    var channel = 0;
    var status = 0xB0 | channel;
-
+   var full_cc_list = [];
+   var knob_values = [];
    for (var i = 0; i < this.data_sets.length; i++) {
       var data_set = this.data_sets[i];
 
@@ -237,13 +245,19 @@ ParameterSaver.prototype.reportKnobValues = function(value_array) {
       
       for(var cb=0;cb<count;cb++){
          var parameter = control_bank.getParameter(cb);
-         var cc_value = parameter.value().get();
-         var cc_target = cc_list[cb];
-       // this.hardwareTwister.sendMidi(status, cc_target, cc_value);
+         var cc_value_float = parameter.value().get();
+         print('cc_value:::' + cc_value_float);
 
-         println('knobValue: ' + cc_target + ' : ' + cc_value);
+         //reduce precision of float
+         var cc_value = Math.floor(cc_value_float.toFixed(PARAMETER_SAVER_PRECISION) * 127);
+         var cc_target = cc_list[cb];
+         this.hardwareTwister.sendMidi(status, cc_target, cc_value);
+         full_cc_list.push(cc_target);
+         knob_values.push(cc_value);
       }
    }
+
+   return [full_cc_list, knob_values];
 }
 
 //Used by external funcs...
@@ -255,10 +269,9 @@ ParameterSaver.prototype.getTrackBank = function(){
    return this.trackBank;
 }
 
-
-
+//Builds our base structure for the data set.
 ParameterSaver.prototype.buildDataSet = function(remote_control_handlers){
-   //var data_set = [[control_bank, cc_list],...];
+
    var data_set = [];
    
    for (var i = 0; i < remote_control_handlers.length; i++) {

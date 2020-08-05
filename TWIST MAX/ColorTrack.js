@@ -69,23 +69,22 @@ function ColorTrack(hardwareTwister, bankSize, color_midi_channel, cc_min, cc_ma
 }
 
 ColorTrack.prototype.handleMidi = function(status, data1, data2){
-   //Deal with color track input...
-   if(isNoteOn(status)){
-      this.enableEditToggle = !this.enableEditToggle
-      ColorTrackInstance.enableEdit(this.enableEditToggle);
-   }
-
+ 
    //Store Knob Values...
    var cc = parseInt(data1);
 
    if (ColorTrackInstance.editEnabled) {
       this.hardwareTwister.sendMidi(this.status, data1, data2);
       ColorTrackInstance.colorValuesUpdate(cc, data2);
-      return true;
    } else {
       ColorTrackInstance.knobValuesUpdate(cc, data2);
    }
 
+   //Deal with color track input...
+   if(isNoteOn(status)){
+      this.enableEditToggle = !this.enableEditToggle
+      ColorTrackInstance.enableEdit(this.enableEditToggle);
+   }
    //Normal knobs just go thru the game...
    return false;   
 }

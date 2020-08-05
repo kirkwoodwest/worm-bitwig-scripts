@@ -104,7 +104,6 @@ function init() {
    color_track_bank = ColorTrackInstance.getTrackBank();
   
    DocColorTrackNameSetting = new TwisterTrackSetting("COLOR_TRACK_NAME", SETTINGS_COLOR_TRACK_NAME, SETTINGS_COLOR_TRACK_NAME, color_track_cursor_track, channelFinder);
-   DocColorTrackNameSetting.setTrackBank(color_track_bank);
   
    twisterTrackSettings.push(DocColorTrackNameSetting);
    // TWISTER_TRACK_SETTINGS_NAMES 
@@ -191,8 +190,7 @@ function init() {
    var cursor_track = paramSaver.getCursorTrack();
    var track_bank = paramSaver.getTrackBank();
    DocParamSaverTrackNameSetting = new TwisterTrackSetting("PARAM_SAVER_NAME", SETTINGS_PARAM_TRACK_NAME, SETTINGS_PARAM_TRACK_NAME, cursor_track, channelFinder);
-   DocParamSaverTrackNameSetting.setTrackBank(track_bank);
-
+   
    MidiProcesses.push(paramSaver);
 
    //If your reading this... I hope you say hello to a loved one today. <3

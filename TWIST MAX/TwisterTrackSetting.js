@@ -19,14 +19,9 @@ function TwisterTrackSetting (settings_id, target_channel_name, twister_id, curs
    this.trackBank = null;
 }
 
-//Alternative option to include a trackbank as well as the defualt cursor channel
-TwisterTrackSetting.prototype.setTrackBank = function(trackBank) {
-   this.trackBank = trackBank;
-}
-
 //Move cursor 
-TwisterTrackSetting.prototype.retargetCursor = function(){
-   println('cursor track' + this.cursor_track);
+TwisterTrackSetting.prototype.retargetCursor = function() {
+
    if (this.cursor_track) this.channel_finder.find(this.cursor_track, this.target_channel_name);
 }
 
@@ -36,11 +31,6 @@ TwisterTrackSetting.prototype.getTwisterID = function(){
 }
 
 TwisterTrackSetting.prototype.trackNameChanged = function(value){
-
-   this.channel_finder.find(this.cursor_track, value);
-
-   if (this.trackBank ) {
-      this.channel_finder.findTrackBank(this.trackBank, value);
-   }
+   if (this.cursor_track) this.channel_finder.find(this.cursor_track, value);
    this.target_channel_name = value;
 }
