@@ -3,6 +3,7 @@ load('../WORM_UTILS/WORM_UTIL.js')
 load('../WORM_UTILS/ChannelFinder.js')
 load('ResamplerHandler.js')
 load('RemoteControlHandler.js')
+load('Psp42Handler.js')
 load('LoopLengthHandler.js')
 load('TrackSendHandler.js')
 load('Config.js')
@@ -35,6 +36,9 @@ else if (host.platformIsLinux())
    // and uncomment this when port names are correct.
    // host.addDeviceNameBasedDiscoveryPair(["Input Port 0"], ["Output Port 0"]);
 }
+
+
+RescanSettings = null;
 
 channelFinder = null;
 Hardware = null;
@@ -79,11 +83,11 @@ function init() {
    Hardware.sendSysex(LAUNCH_LED_INIT);
 
    //Rescan Tracks Button
-   var RescanSettings = docstate.getSignalSetting('Rescan','Rescan Tracks', "Rescan Tracks");
+   RescanSettings = docstate.getSignalSetting('Rescan','Rescan Tracks', "Rescan Tracks");
    RescanSettings.addSignalObserver(rescanTracks);
 
    //Handler for loop length
-   transport = this.transport = host.createTransport();
+   transport = host.createTransport();
    loopLengthHandler = new LoopLengthHandler(transport, Hardware);
    loopLengthHandler.setRecordLength(2);
 
@@ -117,7 +121,9 @@ function init() {
       var has_flat_track_list = true;
       var bank = host.createTrackBank(channel_count, num_sends, num_scenes, has_flat_track_list);
    
-      var cursorTrack = host.createCursorTrack("RESAMPLER_CURSOR_TRACK" + i, "Resampler" + i, 0,0, true);
+      var cursorTrackID = "RESAMPLER_CURSOR_TRACK" + i;
+      var should_follow_selection = false;
+      var cursorTrack = host.createCursorTrack(cursorTrackID,  cursorTrackID, 0,0, should_follow_selection);
       var resampler_handler = new ResamplerHandler(bank, cursorTrack, loopLengthHandler, Hardware, resampler_btn, resampler_leds);
       resamplerHandlers.push(resampler_handler);
 
@@ -157,6 +163,29 @@ function init() {
       MidiProcesses.push(remoteHandler);
    }
 
+   var cc_list = LAUNCH_CONTROL_PSP42_CONTROLS
+   cursorTrack = host.createCursorTrack("CURSOR_TRACK_PSP42", "CURSOR_TRACK_PSP42" + i, 0,0, false);
+   channelFinder.setupCursorTracks(cursorTrack);
+   cursorTracks.push(cursorTrack);
+
+   cursorDevice = cursorTrack.createCursorDevice("CURSOR_DEVICE_PSP42", "CURSOR_DEVICE_PSP42" + i, 0, follow_mode); // CursorDeviceFollowMode.FIRST_DEVICE
+   cursorDevices.push(cursorDevice);
+
+   cursor_remote_page_id = "CURSOR_REMOTE_PSP42";
+   knob_count = 6;
+   cursorRemotePage = cursorDevice.createCursorRemoteControlsPage(cursor_remote_page_id, knob_count,'');
+   cursorRemotePages.push(cursorRemotePage);
+
+   remoteHandler = new Psp42Handler(cursorDevice, cursorRemotePage, cc_list, Hardware);
+  // remoteHandler.init();
+   remoteHandlers.push(remoteHandler);     
+   MidiProcesses.push(remoteHandler);
+
+   //PSP42
+   
+  // LAUNCH_CONTROL_PSP42_INF = LAUNCH_CONTROL_BTNS_1[1];
+//LAUNCH_CONTROL_PSP42_DENS = LAUNCH_CONTROL_BTNS_2[1];
+
    //TODO: Combine this to the mixer device list to use the same cursor track/bank as the mixer.
 
    //Banks and Cursor Devices for Mixer Sends
@@ -177,8 +206,6 @@ function init() {
       trackSendHandlers.push(trackSendHandler);     
       MidiProcesses.push(trackSendHandler);
    }
-
-
   
    println("Worm Launch Control XL initialized!");
 }
@@ -204,7 +231,7 @@ function exit() {
 
 function rescanTracks(){
    //TODO: Clean this the fuck up you filthy animal...
-
+   println('cursore tracks lenght:' + cursorTracks.length);
    //Resampler 
    channelFinder.find(cursorTracks[0], "RE_KICK1");
    channelFinder.find(cursorTracks[1], "LOOPER1");
@@ -213,9 +240,10 @@ function rescanTracks(){
    channelFinder.find(cursorTracks[2], "MAIN");
    channelFinder.find(cursorTracks[3], "RESAMPLER");
    channelFinder.find(cursorTracks[4], "LOOPER1"); 
+   channelFinder.find(cursorTracks[5], "SEND_DELAY"); 
 
    //Sends
-   channelFinder.find(cursorTracks[5], "MAIN");
-   channelFinder.find(cursorTracks[6], "RESAMPLER");
-   channelFinder.find(cursorTracks[7], "LOOPER1");   
+   channelFinder.find(cursorTracks[6], "MAIN");
+   channelFinder.find(cursorTracks[7], "RESAMPLER");
+   channelFinder.find(cursorTracks[8], "LOOPER1");   
 }

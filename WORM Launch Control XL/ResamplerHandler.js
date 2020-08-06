@@ -14,15 +14,19 @@ function ResamplerHandler(trackBank, cursorTrack, loop_length_handler, hardware,
    this.led_play = leds[4];
 
    //Make trackbank follow cursor...
-   trackBank.followCursorTrack(cursorTrack);
+   this.trackBank.followCursorTrack(cursorTrack);
+   this.cursorTrack.position().markInterested();
+
+   //var navigation_mode = CursorNavigationMode.FLAT;
+   //this.cursorTrack.setCursorNavigationMode(navigation_mode);
    
-   for (i=0;i < this.trackBank.getSizeOfBank(); i++){
+   for (var i=0;i < this.trackBank.getSizeOfBank(); i++){
       var track = this.trackBank.getItemAt(i);
       track.name().markInterested();
   
       var clipLauncherBank = track.clipLauncherSlotBank();
       for(var c =0; c<clipLauncherBank.getSizeOfBank();c++){
-         clip_launcher_slot = clipLauncherBank.getItemAt(c);
+         var clip_launcher_slot = clipLauncherBank.getItemAt(c);
          clip_launcher_slot.isRecording().markInterested();
          if(i==0 && c==0){    
             //Only listen to events in the first slot in the first track of bank 
@@ -42,8 +46,15 @@ function ResamplerHandler(trackBank, cursorTrack, loop_length_handler, hardware,
 ResamplerHandler.prototype.handleMidi = function(status, data1, data2) {
    if (isNoteOn(status) && data2 > 64){
       if (data1 == this.resample_btn) {  
-         for (i=0;i < this.trackBank.getSizeOfBank(); i++){
+         var count = this.trackBank.getSizeOfBank();
+         for (var i=0;i < count; i++){
             var track = this.trackBank.getItemAt(i);
+   
+            var name = track.name().get();
+            println('cursor Track position: ' + this.cursorTrack.position().get());
+        
+            println('Report: Bank Index: ' + i + " | Name: " + name);
+        
             var clipLauncherBank = track.clipLauncherSlotBank();
             var clip_launcher_slot = clipLauncherBank.getItemAt(0);
             this.clip_launcher_slot = clip_launcher_slot;
@@ -52,6 +63,7 @@ ResamplerHandler.prototype.handleMidi = function(status, data1, data2) {
                clip_launcher_slot.launch();
                this.loop_length_handler.clearTimeIndex(this.loop_length_handler_id);
             } else {
+               
                clip_launcher_slot.record();
                //Reset time index so it auto plays.
                this.loop_length_handler.setTimeIndex(this.loop_length_handler_id);
@@ -64,7 +76,7 @@ ResamplerHandler.prototype.handleMidi = function(status, data1, data2) {
 }
 
 ResamplerHandler.prototype.launchSlots = function() {
-      for (i=0;i < this.trackBank.getSizeOfBank(); i++){
+      for (var i=0;i < this.trackBank.getSizeOfBank(); i++){
          var track = this.trackBank.getItemAt(i);
          var clipLauncherBank = track.clipLauncherSlotBank();
          var clip_launcher_slot = clipLauncherBank.getItemAt(0);
@@ -73,23 +85,19 @@ ResamplerHandler.prototype.launchSlots = function() {
 }
 
 ResamplerHandler.prototype.isRecording = function(val){
-   println('isRecording: ' + val);
    if(val==true) this.hardware.sendSysex(this.led_record);
 
 }
 
 ResamplerHandler.prototype.isPlaybackQueued = function(val){
-   println('playback queued: ' + val);
   // if(val==true) this.hardware.sendSysex(this.led_queue_play);
 }
 
 ResamplerHandler.prototype.isRecordingQueued = function(val){
-   println('Recording queued: ' + val);
    if(val==true) this.hardware.sendSysex(this.led_queue_record);
 }
 
 ResamplerHandler.prototype.isPlaying = function(val){
-   println('isPlaying: ' + val);
    if(val==true) this.hardware.sendSysex(this.led_play);
    if(val==false) this.hardware.sendSysex(this.led_ready);
 }

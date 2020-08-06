@@ -51,10 +51,10 @@ TrackSendHandler.prototype.updateLed = function(){}
 TrackSendHandler.prototype.handleMidi = function(status, data1, data2) {
    if (isChannelController(status)) {
 
-      cc = parseInt(data1);
+      var cc = parseInt(data1);
       println('cctransl:' + this.cc_translation)
       println('cctransl:' + this.cc_translation)
-      index = this.cc_translation[parseInt(data1)];
+      var index = this.cc_translation[parseInt(data1)];
 
       if(index == undefined || index == null) return;
 

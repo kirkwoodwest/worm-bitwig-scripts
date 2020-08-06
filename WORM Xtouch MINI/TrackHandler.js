@@ -10,6 +10,8 @@ function TrackHandler(trackBank, cursorTrack, hardware, cc_min, cc_max) {
 
    this.enable(true);
 
+   trackBank.followCursorTrack(cursorTrack);
+   
    for (i=0;i < this.trackBank.getSizeOfBank(); i++){
       var track = this.trackBank.getItemAt(i);
 

@@ -6,17 +6,17 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank, cc_list, hardwa
    this.cursorDevice = cursorDevice;
    this.remoteControlsBank = remoteControlsBank;
    this.hardware = hardware;
-
+   
    this.cc_list = cc_list;
    this.cc_translation = [];
 
    //Build reverse lookup table
-   for(i = 0;i<this.cc_list.length;i++){
+   for(var i = 0;i<this.cc_list.length;i++){
       this.cc_translation[ parseInt(this.cc_list[i]) ] = i;
    }
 
    var i;
-   for (i = 0; i < this.remoteControlsBank.getParameterCount(); i++) {
+   for (var i = 0; i < this.remoteControlsBank.getParameterCount(); i++) {
       var callback_func = makeIndexedFunction(i, doObject(this, this.remoteUpdate));
       var parameter = this.remoteControlsBank.getParameter(i);
       parameter.value().addValueObserver(128,callback_func);
@@ -27,7 +27,6 @@ function RemoteControlHandler (cursorDevice, remoteControlsBank, cc_list, hardwa
 
 RemoteControlHandler.prototype.selectedPageIndexChanged = function(){}
 RemoteControlHandler.prototype.resetPage = function(){}
-
 
 RemoteControlHandler.prototype.setIndication = function (enable)
 {
@@ -48,16 +47,9 @@ RemoteControlHandler.prototype.remoteUpdate = function(index, value){
 
 //TODO: Convert to using hardware connection...
 RemoteControlHandler.prototype.handleMidi = function (status, data1, data2) {
-   data1 = data1;
    if (isChannelController(status)) {
-
-      cc = parseInt(data1);
-
-      index = this.cc_translation[parseInt(data1)];
-
-      println('cc:' + cc)
-      println('index:' + index)
-
+      var cc = parseInt(data1);
+      var index = this.cc_translation[parseInt(data1)];
       if(index == undefined || index == null) return;
 
       if (index != undefined) {

@@ -79,17 +79,4 @@ LoopLengthHandler.prototype.handleFlush = function(){
          }
       }
    }
-   
-}
-
-LoopLengthHandler.prototype.launchSlots = function() {
-   //Launches first slot of each track in the track bank...
-   var clip_slot_index = 0;
-   for (i=0;i < this.trackBank.getSizeOfBank(); i++){
-      var track = this.trackBank.getItemAt(i);
-      var clipLauncherBank = track.clipLauncherSlotBank();
-      var clip_launcher_slot = clipLauncherBank.getItemAt(clip_slot_index);
-      clip_launcher_slot.launch();
-      this.time_index = -1;
-   }      
 }

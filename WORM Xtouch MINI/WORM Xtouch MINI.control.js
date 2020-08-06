@@ -3,7 +3,6 @@ load('../WORM_UTILS/WORM_UTIL.js')
 load('../WORM_UTILS/ChannelFinder.js')
 load("../Common/HardwareBasic.js");
 load('TrackHandler.js')
-load('RemoteControlHandler.js')
 load('Config.js')
 
 // Remove this if you want to be able to use deprecated methods without causing script to stop.
@@ -99,9 +98,11 @@ function init() {
    cursorTracks = [];
 
    bank = host.createTrackBank(8,0,0,true);
+
    cursor_track = host.createCursorTrack("CURSOR_TRACK_1", "Main", 0,0, false);
    cc_min = XTOUCH_MAIN_CC[0];
    cc_max = XTOUCH_MAIN_CC[1];
+
    track_handler = new TrackHandler(bank, cursor_track, Hardware, cc_min, cc_max);
   
    banks.push(bank); 
@@ -112,12 +113,12 @@ function init() {
    cursor_track = host.createCursorTrack("CURSOR_TRACK_2", "Resampler", 0,0, false);
    cc_min = XTOUCH_MAIN_CC[0];
    cc_max = XTOUCH_MAIN_CC[1];
+
    track_handler = new TrackHandler(bank, cursor_track, Hardware, cc_min, cc_max);
 
    banks.push(bank); 
    cursorTracks.push(cursor_track);
    trackHandlers.push(track_handler); 
-
 
    //Start with selecting the first track handler
    selectTrackHandler(0);
@@ -154,7 +155,6 @@ function selectTrackHandler(id){
       status = 0x90;
       Hardware.sendMidi(status, XTOUCH_BTN_A, 127);
       Hardware.sendMidi(status, XTOUCH_BTN_B, 0);
-
    } else {
       trackHandlers[0].enable(false);
       trackHandlers[1].enable(true);
@@ -185,13 +185,8 @@ function settingBankSizeChanged(){
 }
 
 function settingMainTrackNameChanged(value){
-   println('value:' + value );
    channelFinder.find(cursorTracks[0], value);
-
-   println('value:' + value );
    channelFinder.findTrackBank(banks[0], value);
-
-   println('value:' + value );
 }
 function settingResampleTrackNameChanged(value){
    channelFinder.find(cursorTracks[1], value);

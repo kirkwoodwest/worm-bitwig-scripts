@@ -1,9 +1,0 @@
-function CIRKLON(outputPort, inputPort, inputCallback) {
-   this.outputPort 	= outputPort;
-   this.inputPort 	= inputPort;
-   this.inputPort.setMidiCallback(inputCallback);
-}
-
-CIRKLON.prototype.sendMidi = function(status, data1, data2) {
-   this.outputPort.sendMidi(status, data1, data2);
-}
