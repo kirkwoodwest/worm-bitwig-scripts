@@ -11,7 +11,7 @@ function TrackHandler(trackBank, cursorTrack, hardware, cc_min, cc_max) {
    this.enable(true);
 
    trackBank.followCursorTrack(cursorTrack);
-   
+
    for (i=0;i < this.trackBank.getSizeOfBank(); i++){
       var track = this.trackBank.getItemAt(i);
 
@@ -41,14 +41,6 @@ TrackHandler.prototype.volumeUpdate = function(index, value){
    var status = 0xB0;
    var data1 = cc;
    var data2 = value;
-  // this.hardware.sendMidi(status, data1, data2);
-
-   //midi channel
-   //var status = 0xB0 | XTOUCH_MIDI_CHANNEL;
-//   this.hardware.sendMidi(status, data1, data2);
-
-   println('volumeUpdate: ' + status)
-  // this.hardware_cirklon.sendMidi(status, data1, data2);
 }
 
 TrackHandler.prototype.soloUpdate = function(index, value){
@@ -71,14 +63,12 @@ TrackHandler.prototype.updateLed = function(){
 
       var min_val = 33;
       var max_val = 43;
-      var cc = XTOUCH_LED_KNOBS[0] + i;
-     // cc = this.cc_min + 8 + i;
+      var cc = XTOUCH_LED_KNOBS[0] + i; //Increment through knob list.
+
       var status = 0xB0;
 
-      //println('volume_value' + volume_value)
       value = map_range(volume_value, 0, 1, min_val, max_val);
       value = Math.round(value);
-      //println('value' + value);
       this.hardware.sendMidi(status, cc, value);
 
       var cc = this.cc_min + i;
@@ -103,22 +93,14 @@ TrackHandler.prototype.updateLed = function(){
 
 
 TrackHandler.prototype.handleMidi = function(status, data1, data2) {
-   println('TrackHandler.prototype.handleMidi ');
-   println('TrackHandler.prototype.handleMidi ' + status);
-   println('TrackHandler.prototype.handleMidi ' + status);
-   debug_midi(status, data1, data2, 'Midi Note Handled', false);
    if (this.enabled_bool == false) return;
    if (isNoteOn(status) && data2 > 64){
-
-
       if (data1 == XTOUCH_BTN_ROW_2[0]) {
          //reset all faders to max.
          for (var i=0;i < this.trackBank.getSizeOfBank(); i++){
             var track = this.trackBank.getItemAt(i);
             //reset Track Bank...
-            println('reset track bank')
             track.volume().set(VOLUME_MAX_CC, 127);
-            
          }
       }
 

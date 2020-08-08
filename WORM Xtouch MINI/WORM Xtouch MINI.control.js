@@ -3,7 +3,7 @@ load('../WORM_UTILS/WORM_UTIL.js')
 load('../WORM_UTILS/ChannelFinder.js')
 load("../Common/HardwareBasic.js");
 load('TrackHandler.js')
-load('RemoteControlHandler.js')
+load('TurnadoHandler.js')
 load('Config.js')
 
 // Remove this if you want to be able to use deprecated methods without causing script to stop.
@@ -71,7 +71,8 @@ trackHandlers = [];
 cursorDevices = [];
 cursorRemotePages = [];
 turnadoRemoteHandlers = [];
-turnadoCursorTracks = []
+turnadoCursorTracks = [];
+turnadoHandler = null
 
 MidiProcesses = [];
 
@@ -131,40 +132,17 @@ function init() {
    MidiProcesses.push(track_handler);
 
    //Multipage Cursor Remotes for Turnado Implement
-   follow_mode = CursorDeviceFollowMode.FIRST_DEVICE;
-   var knob_count = 1;
-   for (var i=0;i<turnado_track_names.length;i++){
-      var cursorTrack = host.createCursorTrack("CURSOR_TRACK_TURNADO" + i, "TURNADO" + i, 0,0, false);
-      channelFinder.setupCursorTracks(cursorTrack);
-      cursorTracks.push(cursorTrack);
-
-      cursor_device_id = "CURSOR_TRACK_TURNADO_" + i;
-      var cursorDevice = cursorTrack.createCursorDevice(cursor_device_id, "TURNADO" + i, 0, follow_mode);
-      cursorDevices.push(cursorDevice);
-
-      cursor_remote_page_id = "CURSOR_TRACK_TURNADO_" +  i;
-      var cursorRemotePage = cursorDevice.createCursorRemoteControlsPage(cursor_remote_page_id, knob_count,'');
-      cursorRemotePages.push(cursorRemotePage);
-
-      var remoteHandler = new RemoteControlHandler(cursorDevice, cursorRemotePage, [XTOUCH_MAIN_CC_LIST[i]], Hardware, i);
-      turnadoRemoteHandlers.push(remoteHandler);
-      MidiProcesses.push(remoteHandler);
-
-      turnadoCursorTracks.push(cursorTrack);
-      println('turnado_track_names' + turnado_track_names[i]);
-      println('turnado_track_names' + turnadoRemoteHandlers);
-   }
+   var cc_list = XTOUCH_MAIN_CC_LIST;
+   turnadoHandler = new TurnadoHandler(turnado_track_names, cc_list, Hardware);
+   MidiProcesses.push(turnadoHandler);
 
    //Start with selecting the first track handler
    selectTrackHandler(0);
 
-   /* */
-   
-
    host.scheduleTask(channelFinderRescan, 1000);
    
-   //If your reading this... I hope you say hello to a loved one today. <3
-   println("TWIST8 Initialized." + new Date());
+   //If your reading this... give yourself 5 fingers. HIGH FIVE! . <3
+   println("XTOUCH MINI Initialized." + new Date());
    println("Now make some dope beats...");
 }
 
@@ -188,7 +166,7 @@ function selectTrackHandler(id){
    if (id == 0) {
       trackHandlers[0].enable(true);
       trackHandlers[1].enable(false);
-      enableTurnadoRemotes(false);
+      turnadoHandler.enable(false);
 
       status = 0x90;
       Hardware.sendMidi(status, XTOUCH_BTN_A, 127);
@@ -198,7 +176,7 @@ function selectTrackHandler(id){
    } else if (id == 1) {
       trackHandlers[0].enable(false);
       trackHandlers[1].enable(true);
-      enableTurnadoRemotes(false);
+      turnadoHandler.enable(false);
 
       status = 0x90;
       Hardware.sendMidi(status, XTOUCH_BTN_A, 0);
@@ -207,7 +185,7 @@ function selectTrackHandler(id){
    } else if (id == 2) {
       trackHandlers[0].enable(false);
       trackHandlers[1].enable(false);
-      enableTurnadoRemotes(true);
+      turnadoHandler.enable(true);
 
       status = 0x90;
       Hardware.sendMidi(status, XTOUCH_BTN_A, 0);
@@ -259,10 +237,5 @@ function channelFinderRescan(){
    resampleTrackName = DocResampleTrackSetting.get(); 
    settingResampleTrackNameChanged(resampleTrackName);
 
-   for(var i = 0; i < turnadoCursorTracks.length;i++) {
-      var cursor_track = turnadoCursorTracks[i];
-      var name = turnado_track_names[i];
-      channelFinder.find(cursor_track, name);
-   }
-   
+   turnadoHandler.retargetNames(channelFinder);   
 }
