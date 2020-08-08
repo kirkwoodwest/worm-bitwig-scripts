@@ -78,10 +78,8 @@ TurnadoHandler.prototype.updateLed = function(){
 
       //Update Preset LED
       //TODO: Implement in bitwig device and make flag for updating this value...
-      for (i = 0; i < this.trackBank.getSizeOfBank (); i++){
-         var track = this.trackBank.getItemAt(i);
+      for (i = 0; i < this.cursorRemotes.length; i++){
          var solo_value = false
-         
          status = 0x90;
          note = XTOUCH_BTN_ROW_1[i];
          value = 0;
