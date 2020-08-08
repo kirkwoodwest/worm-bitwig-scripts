@@ -45,7 +45,7 @@ Hardware = null;
 
 MidiProcesses = [];
 
-bankMain = null;
+mainBanks = [];
 sendBanks = [];
 
 resamplerHandlers = [];
@@ -93,7 +93,7 @@ function init() {
 
    MidiProcesses.push(loopLengthHandler);
 
-   bankMain = bank;
+   
 
    //Resamplers...
    var channel_count = 8;
@@ -130,6 +130,7 @@ function init() {
       //Set up channel finder
       channelFinder.setupCursorTracks(cursorTrack);
       cursorTracks.push(cursorTrack);
+      mainBanks.push(bank);
 
       MidiProcesses.push(resampler_handler);
 
@@ -233,8 +234,8 @@ function rescanTracks(){
    //TODO: Clean this the fuck up you filthy animal...
    println('cursore tracks lenght:' + cursorTracks.length);
    //Resampler 
-   channelFinder.find(cursorTracks[0], "RE_KICK1");
-   channelFinder.find(cursorTracks[1], "LOOPER1");
+   channelFinder.findTrackBank(mainBanks[0], "RE_KICK1");
+   channelFinder.findTrackBank(mainBanks[1], "LOOPER1");
    
    //mixer
    channelFinder.find(cursorTracks[2], "MAIN");
@@ -243,7 +244,7 @@ function rescanTracks(){
    channelFinder.find(cursorTracks[5], "SEND_DELAY"); 
 
    //Sends
-   channelFinder.find(cursorTracks[6], "MAIN");
-   channelFinder.find(cursorTracks[7], "RESAMPLER");
-   channelFinder.find(cursorTracks[8], "LOOPER1");   
+   channelFinder.findTrackBank(sendBanks[0], "MAIN");
+   channelFinder.findTrackBank(sendBanks[1], "RESAMPLER");
+   channelFinder.findTrackBank(sendBanks[2], "LOOPER1");   
 }

@@ -3,6 +3,7 @@ load('../WORM_UTILS/WORM_UTIL.js')
 load('../WORM_UTILS/ChannelFinder.js')
 load("../Common/HardwareBasic.js");
 load('TrackHandler.js')
+load('RemoteControlHandler.js')
 load('Config.js')
 
 // Remove this if you want to be able to use deprecated methods without causing script to stop.
@@ -36,6 +37,8 @@ Preferences = null;
 
 KnobSettingEnum = ["Device", "Track Volumes"];
 
+turnado_track_names = ['RE_KICK1', 'RE_DRUM2', 'RE_TRACK3', 'RE_TRACK4', 'RE_TRACK5', 'RE_TRACK6', 'RE_TRACK7', 'RE_TRACK8'];
+
 //Setting for knobs, do they control a row of tracks or first 8 parameters of a device?
 PrefTopKnobsSetting = null; 
 PrefBottomKNobsSetting = null;
@@ -64,6 +67,11 @@ channelFinder = null;
 remoteHandlers = [];
 cursorTracks = [];
 trackHandlers = [];
+
+cursorDevices = [];
+cursorRemotePages = [];
+turnadoRemoteHandlers = [];
+turnadoCursorTracks = []
 
 MidiProcesses = [];
 
@@ -108,6 +116,7 @@ function init() {
    banks.push(bank); 
    cursorTracks.push(cursor_track);
    trackHandlers.push(track_handler); 
+   MidiProcesses.push(track_handler);
 
    bank = host.createTrackBank(8,0,0,true);
    cursor_track = host.createCursorTrack("CURSOR_TRACK_2", "Resampler", 0,0, false);
@@ -119,12 +128,38 @@ function init() {
    banks.push(bank); 
    cursorTracks.push(cursor_track);
    trackHandlers.push(track_handler); 
+   MidiProcesses.push(track_handler);
+
+   //Multipage Cursor Remotes for Turnado Implement
+   follow_mode = CursorDeviceFollowMode.FIRST_DEVICE;
+   var knob_count = 1;
+   for (var i=0;i<turnado_track_names.length;i++){
+      var cursorTrack = host.createCursorTrack("CURSOR_TRACK_TURNADO" + i, "TURNADO" + i, 0,0, false);
+      channelFinder.setupCursorTracks(cursorTrack);
+      cursorTracks.push(cursorTrack);
+
+      cursor_device_id = "CURSOR_TRACK_TURNADO_" + i;
+      var cursorDevice = cursorTrack.createCursorDevice(cursor_device_id, "TURNADO" + i, 0, follow_mode);
+      cursorDevices.push(cursorDevice);
+
+      cursor_remote_page_id = "CURSOR_TRACK_TURNADO_" +  i;
+      var cursorRemotePage = cursorDevice.createCursorRemoteControlsPage(cursor_remote_page_id, knob_count,'');
+      cursorRemotePages.push(cursorRemotePage);
+
+      var remoteHandler = new RemoteControlHandler(cursorDevice, cursorRemotePage, [XTOUCH_MAIN_CC_LIST[i]], Hardware, i);
+      turnadoRemoteHandlers.push(remoteHandler);
+      MidiProcesses.push(remoteHandler);
+
+      turnadoCursorTracks.push(cursorTrack);
+      println('turnado_track_names' + turnado_track_names[i]);
+      println('turnado_track_names' + turnadoRemoteHandlers);
+   }
 
    //Start with selecting the first track handler
    selectTrackHandler(0);
 
    /* */
-   MidiProcesses = trackHandlers;
+   
 
    host.scheduleTask(channelFinderRescan, 1000);
    
@@ -140,6 +175,8 @@ function onMidi(status, data1, data2) {
       selectTrackHandler(0);
    } else if (isNoteOn(status) && data1 == XTOUCH_BTN_B){
       selectTrackHandler(1);
+   } else if (isNoteOn(status) && data1 == XTOUCH_BTN_ROW_2[7]){
+      selectTrackHandler(2);
    }
    for(i=0; i< MidiProcesses.length; i++){
       stop_processing = MidiProcesses[i].handleMidi(status, data1, data2);
@@ -151,17 +188,38 @@ function selectTrackHandler(id){
    if (id == 0) {
       trackHandlers[0].enable(true);
       trackHandlers[1].enable(false);
+      enableTurnadoRemotes(false);
 
       status = 0x90;
       Hardware.sendMidi(status, XTOUCH_BTN_A, 127);
       Hardware.sendMidi(status, XTOUCH_BTN_B, 0);
-   } else {
+      Hardware.sendMidi(status, XTOUCH_BTN_ROW_2[7], 0);
+
+   } else if (id == 1) {
       trackHandlers[0].enable(false);
       trackHandlers[1].enable(true);
+      enableTurnadoRemotes(false);
 
       status = 0x90;
       Hardware.sendMidi(status, XTOUCH_BTN_A, 0);
       Hardware.sendMidi(status, XTOUCH_BTN_B, 127);
+      Hardware.sendMidi(status, XTOUCH_BTN_ROW_2[7], 0);
+   } else if (id == 2) {
+      trackHandlers[0].enable(false);
+      trackHandlers[1].enable(false);
+      enableTurnadoRemotes(true);
+
+      status = 0x90;
+      Hardware.sendMidi(status, XTOUCH_BTN_A, 0);
+      Hardware.sendMidi(status, XTOUCH_BTN_B, 0);
+      Hardware.sendMidi(status, XTOUCH_BTN_ROW_2[7], 127);
+   }
+}
+
+function enableTurnadoRemotes(enable){
+   for (var i =0;i<turnadoRemoteHandlers.length;i++){
+      turnadoRemoteHandlers[i].enable(enable);
+
    }
 }
 
@@ -200,4 +258,11 @@ function channelFinderRescan(){
 
    resampleTrackName = DocResampleTrackSetting.get(); 
    settingResampleTrackNameChanged(resampleTrackName);
+
+   for(var i = 0; i < turnadoCursorTracks.length;i++) {
+      var cursor_track = turnadoCursorTracks[i];
+      var name = turnado_track_names[i];
+      channelFinder.find(cursor_track, name);
+   }
+   
 }
