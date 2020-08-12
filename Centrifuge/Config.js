@@ -31,3 +31,5 @@ const XTOUCH_LED_ROW_1 = [0,1,2,3,4,5,6,7];
 const XTOUCH_LED_ROW_2 = [8,9,10,11,12,13,14,15];
 
 const VOLUME_MAX_CC = 100; // Limit for volume fader cc.
+
+//TODO: FIX the names on all these its all sorts of fucked.

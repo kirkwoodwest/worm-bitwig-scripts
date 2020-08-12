@@ -21,7 +21,9 @@ function TwisterTrackSetting (settings_id, target_channel_name, twister_id, curs
 
 //Move cursor 
 TwisterTrackSetting.prototype.retargetCursor = function() {
-
+   println('retarget cursor: ' + this.target_channel_name);
+   println('retarget cursor: ' + this.cursor_track);
+   println('--------')
    if (this.cursor_track) this.channel_finder.find(this.cursor_track, this.target_channel_name);
 }
 

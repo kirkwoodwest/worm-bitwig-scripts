@@ -5,7 +5,7 @@ const PARAMETER_SAVER_PRECISION = 4;
  * 
  * @param {Number} bankSize Size of Bank necessary to determine how many color clips this script can manage...
  */
-function ParameterSaver(hardwareTwister, bankSize, remoteHandlers) {
+function ParameterSaver(hardware, bankSize, remoteHandlers) {
 
    //incoming paramters, twister, remoteControl Handlers
    //Need to retreive a list of parameters from the remote control handler
@@ -18,7 +18,7 @@ function ParameterSaver(hardwareTwister, bankSize, remoteHandlers) {
       //Method for reading paramter values, matching it up with paramter list and sending cc value to the twister hardware.
    
 
-   this.hardwareTwister = hardwareTwister;
+   this.hardware = hardware; //Likely the Xtouch...
    this.control_banks_and_cc_lists = []
    this.playingSlotIndex = -1;
 
@@ -29,11 +29,15 @@ function ParameterSaver(hardwareTwister, bankSize, remoteHandlers) {
 
    this.clip_names = [];
 
-   this.clipEditEnabled = false;
+   this.clipEditEnabled = false; //This is a flag to determine if we are editing a clip for saving? //TODO: Is it needed?
+   this.enabled_bool = false; //Whether or not the Parameter saving/morphing mode is enabled
   
    this.morph_parameters_a = [];
    this.morph_parameters_b = [];
    this.parameter_save_data = [];
+
+   //Initialize morph knob...
+   this.setMorphKnob(0, false);
 
    //Create Track Bank
    this.trackBank = host.createTrackBank(1, 0, bankSize);
@@ -200,25 +204,30 @@ ParameterSaver.prototype.getParameterValues = function() {
 
 //Saves current knobs to a specific slot..
 ParameterSaver.prototype.saveParametersToSlot = function(parameters_slot_index){
-   parameter_save_data[parameters_slot_index] = this.getParameterValues();
+   this.parameter_save_data[parameters_slot_index] = this.getParameterValues()[1];
+   println('saveParametersToSlot' + parameters_slot_index);
+   println('this.getParameterValues()[1]' + this.parameter_save_data[parameters_slot_index]);
 }
 
 ParameterSaver.prototype.restoreParametersFromSlot = function(parameters_slot_index){
-   var parameter_data = parameter_save_data[parameters_slot_index];
-   if (parameter_data) {
-      var reduced_paramter_data = parameter_data[1]; 
-      this.setParameterValues(parameter_data);
+   var parameter_data_values = this.parameter_save_data[parameters_slot_index];
+   if (parameter_data_values) {
+
+      println('restoreParametersFromSlot' + parameters_slot_index);
+      println('this.setParameterValues()' + this.parameter_save_data[parameters_slot_index]);
+      this.setParameterValues(parameter_data_values);
    }
 }
 
 //Morph A always gets the current values...
 ParameterSaver.prototype.setMorphA = function(){
-  this.morph_parameters_a = this.getParameterValues();
+   //For morphs and parameter save data we just store the values list [1];
+   this.morph_parameters_a = this.getParameterValues()[1];
 }
 
 //Morph B points to parameter save data.
 ParameterSaver.prototype.setMorphB = function(parameters_slot_index){
-   this.morph_parameters_b = parameter_save_data[parameters_slot_index];
+   this.morph_parameters_b = this.parameter_save_data[parameters_slot_index];
 }
 
 //Sets all the parameters in the control banks to the parameter_values array.
@@ -247,17 +256,22 @@ ParameterSaver.prototype.morphParameters = function(value) {
    //Have to have valid morph data to do this...
    if(this.morph_parameters_a == [] || this.morph_parameters_b == []) return;
 
+   println('this.morph_parameters_a' + this.morph_parameters_a);
+   println('this.morph_parameters_b' + this.morph_parameters_b);
    var param_array = [];
    for(var i = 0; i< this.morph_parameters_a.length; i++) {
 
       //Get Param values...
-      var param_value_a = this.morph_parameters_a[1][i];
-      var param_value_b = this.morph_parameters_b[1][i];
+      var param_value_a = this.morph_parameters_a[i];
+      var param_value_b = this.morph_parameters_b[i];
+
+      println('param index:' + i + " || " + param_value_b);
 
       //Morph the parameter by the value.
       param_array[i] = Math.round(map_range(value, 0, 1, param_value_a, param_value_b));
    }
    
+   println('morph parameters array: ' + param_array);
    //Send the array...
    this.setParameterValues(param_array)
 }
@@ -265,17 +279,19 @@ ParameterSaver.prototype.morphParameters = function(value) {
 //Set the morph knob...
 ParameterSaver.prototype.setMorphKnob = function(value, do_morph) {
    this.morph_knob_value = value;
-   if (morph_params) this.morphParameters(value);
+   if (do_morph) this.morphParameters(value);
 }
 
 ParameterSaver.prototype.setMorphKnobInc = function(inc_value) {
    println('inc_value: ' + inc_value);
-   
+   var inc_value_float = inc_value / 128 * -1;
    var old_value = this.morph_knob_value;
-   var new_value = inc_value;
-   this.setMorphKnob(new_value, true);
    
-   if (morph_params) this.morphParameters(value);
+   new_value = old_value - inc_value_float;
+   var new_value = valBetween(new_value,0,1);
+   println("new value: " + new_value);
+   println(" inc_value_float: " + inc_value_float);
+   this.setMorphKnob(new_value, true);
 }
 
 
@@ -301,6 +317,12 @@ ParameterSaver.prototype.contentChanged = function(slot_index, has_clip){
 // Externals
 //
 
+//Set enabled flag 
+ParameterSaver.prototype.enable = function(enabled_bool){
+   this.enabled_bool = enabled_bool;
+}
+
+
 //Used by external funcs...
 ParameterSaver.prototype.getCursorTrack = function(){
    return this.cursorTrack;
@@ -312,15 +334,57 @@ ParameterSaver.prototype.getTrackBank = function(){
 }
 
 //Add this to the midi process for the controller used.
-ParameterSaver.prototype.updateLeds = function(){
-  // if (this.clipEditEnabled == false) return;
+ParameterSaver.prototype.updateLed = function(){
+   if (this.enabled_bool == false) return;
    //Update the Leds on this...
+
+
+   //show values for knobs...
+   for (var i = 0; i < XTOUCH_LED_KNOBS_LIST.length; i++){
+      var value = 0
+      var min_val = 33;
+      var max_val = 43;
+      var cc = XTOUCH_LED_KNOBS_LIST[0] + i;
+      var status = 0xB0;//CC Status
+   
+      if(i==0 ) value = map_range(this.morph_knob_value, 0,1, min_val,max_val);
+      value = Math.round(value);
+      this.hardware.sendMidi(status, cc, value);
+   }
+
+   //Highlight Buttons
+   for (var i = 0; i < XTOUCH_LED_ROW_1.length;i++) {
+      var status = 0x90;
+      var note = XTOUCH_BTN_ROW_1[i];
+      var value = 0;
+      if (this.parameter_save_data[i]) value = 127;
+      this.hardware.sendMidi(status, note, value);
+   }
+
+   //Always lit buttons
+   var status = 0x90;
+   var note = XTOUCH_BTN_ROW_2[0];
+   var value = 127;
+   this.hardware.sendMidi(status, note, value);
+
+   note = XTOUCH_BTN_ROW_2[1];
+   this.hardware.sendMidi(status, note, value);
+
+   //Remaining leds off
+   for(var i=2;i<XTOUCH_BTN_ROW_2.length;i++){
+      note = XTOUCH_BTN_ROW_2[i];
+      value = 0;
+      this.hardware.sendMidi(status, note, value);
+   }
+
+
+   
    //Flow thru...
    return false;
 }
 
 //Add this to the midi process for the controller used.
-ParameterSaver.prototype.handleMidi = function(status, data1, data2){
+ParameterSaver.prototype.handleTwisterMidi = function(status, data1, data2){
 
    //This is for managing the clip parameter save.
    if(isNoteOn(status)){
@@ -336,43 +400,55 @@ ParameterSaver.prototype.handleMidi = function(status, data1, data2){
 
 
 ParameterSaver.prototype.handleXtouchMidi = function(status, data1, data2) {
+   debug_midi(status, data1, data2);
    //are we in the xtouch midi mode? 
+   if (this.enabled_bool == false) return;
 
    if (isNoteOn(status) || isNoteOff(status)) {
+      var is_pressed = (data2 > 64);
+      println('is pressed' + is_pressed)
+
       //State Controllers 
       //Edit Button
       if (data1 == XTOUCH_BTN_ROW_2[0]){
-         if (isNoteOn(status)) this.btn_edit_pressed = true;
-         if (isNoteOff(status)) this.btn_edit_pressed = false;
+         if (is_pressed) this.btn_edit_pressed = true;
+         if (!is_pressed) this.btn_edit_pressed = false;
          return true;
       }
       //Morph Button
       if (data1 == XTOUCH_BTN_ROW_2[1]){
-         if (isNoteOn(status)) {
+         if (is_pressed) {
             this.btn_morph_pressed = true;
             this.setMorphA();
             this.setMorphKnob(0, false);
          }
-         if (isNoteOff(status)) this.btn_morph_pressed = false;
+         if (!is_pressed) this.btn_morph_pressed = false;
          return true;
       }
 
       //Slot Buttons
-      if(isNoteOn(status)) {
+      if(is_pressed) {
          var slot_index = 0;
-         for(var i = 0;i < XTOUCH_BTN_ROW_1.length) {
+         for(var i = 0;i < XTOUCH_BTN_ROW_1.length;i++) {
             if (data1 == XTOUCH_BTN_ROW_1[i]) {
                slot_index = i;
                break;
             }
          }            
-            if (this.btn_edit_pressed){
-               this.saveParametersToSlot(slot_index);
-            } else if (this.btn_morph_pressed) {
-               this.setMorphB(slot_index);
-            } else {
-               this.restoreParametersFromSlot(slot_index);
-            }
+         println('slot index: ' + slot_index);
+         println('this.btn_edit_pressed: ' + this.btn_edit_pressed);
+         if (this.btn_edit_pressed){
+            this.saveParametersToSlot(slot_index);
+         } else if (this.btn_morph_pressed) {
+            this.setMorphB(slot_index);
+         } else {
+            //Parameter hard recall...
+            this.restoreParametersFromSlot(slot_index);
+            
+            //If param recall reset the morph values to this index.
+            this.setMorphKnob(0, false);
+            this.setMorphB(slot_index);
+         }
 
          return true;
       }
@@ -381,11 +457,11 @@ ParameterSaver.prototype.handleXtouchMidi = function(status, data1, data2) {
 
       if(data1==XTOUCH_MAIN_CC_LIST[0]){
          
-         var data_mapped = floatToRange(data, 127);
+        // var data_mapped = floatToRange(data, 127);
          
          var value = data2 > 64 ? 64 - data2 : data2;
-         this.setMorphKnob(value, true);
-         track.volume().inc (value, 128);
+         this.setMorphKnobInc(value, true);
+       //  track.volume().inc (value, 128);
 
          return true;
       } 
