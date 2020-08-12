@@ -38,7 +38,6 @@ function ParameterSaver(hardwareTwister, bankSize, remoteHandlers) {
    //Create Track Bank
    this.trackBank = host.createTrackBank(1, 0, bankSize);
    
-
    //Create Cursor Track and Cursor Clip
    this.cursorTrack = host.createCursorTrack("PARAM_SAVER_CURSOR", "Param Track", 0,0, true);
    this.cursorClip = this.cursorTrack.createLauncherCursorClip('PARAM_SAVER_CURSOR', 'Param Clip',1,1);
@@ -273,7 +272,7 @@ ParameterSaver.prototype.setMorphKnobInc = function(inc_value) {
    println('inc_value: ' + inc_value);
    
    var old_value = this.morph_knob_value;
-   var new value;
+   var new_value = inc_value;
    this.setMorphKnob(new_value, true);
    
    if (morph_params) this.morphParameters(value);
