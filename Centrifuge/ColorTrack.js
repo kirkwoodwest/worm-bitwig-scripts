@@ -1,6 +1,8 @@
-/*
-Constants
-*/
+// Written by Kirkwood West - kirkwoodwest.com
+// (c) 2020
+// Licensed under LGPLv3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+
+
 const INIT_WAIT_TIME = 2000;   //Wait time until init.
 const RESTART_DOCUMENT_CHANNEL_SEARCH_TIME = 1000; //Wait time between channel searches.
 

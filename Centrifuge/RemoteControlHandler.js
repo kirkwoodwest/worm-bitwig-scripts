@@ -1,3 +1,8 @@
+// Written by Kirkwood West - kirkwoodwest.com
+// (c) 2020
+// Licensed under LGPLv3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+
+
 function RemoteControlHandler (cursorDevice, remoteControlsBank, page_index, twister_cc_min, twister_cc_max, hardware_twister, hardware_cirklon) {
    this.cursorDevice = cursorDevice;
    this.remoteControlsBank = remoteControlsBank;

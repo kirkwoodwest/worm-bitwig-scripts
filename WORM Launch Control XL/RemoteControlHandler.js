@@ -1,3 +1,7 @@
+// Written by Kirkwood West - kirkwoodwest.com
+// (c) 2020
+// Licensed under LGPLv3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+
 function RemoteControlHandler (cursorDevice, remoteControlsBank, cc_list, hardware) {
    //TODO: Modify CC_MIN/MAX to take a cc list which will be mapped to the cursor device.
    //Make tool support variety of cc that are not exactly one after anoth.

@@ -1,4 +1,8 @@
 
+// Written by Kirkwood West - kirkwoodwest.com
+// (c) 2020
+// Licensed under LGPLv3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+
 function debug_midi(status, data1, data2, msg, isError){
    var string_dec = status + " : CH: " + (MIDIChannel(status)+1) + " : "+ data1 + " : " + data2;
    var string_hex = uint8ToHex(status).toUpperCase() + " : " + uint7ToHex(data1).toUpperCase() + " : " + uint7ToHex(data2).toUpperCase()

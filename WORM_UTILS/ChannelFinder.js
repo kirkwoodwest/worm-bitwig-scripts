@@ -1,3 +1,7 @@
+// Written by Kirkwood West - kirkwoodwest.com
+// (c) 2020
+// Licensed under LGPLv3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+
 var CHANNEL_FINDER_TRACK_COUNT = 64;
 _ChannelFinderInstance = null;
 function ChannelFinder(){

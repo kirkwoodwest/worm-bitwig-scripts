@@ -1,3 +1,7 @@
+// Written by Kirkwood West - kirkwoodwest.com
+// (c) 2020
+// Licensed under LGPLv3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+
 load('../WORM_UTILS/WORM_UTIL.js')
 load('../WORM_UTILS/ChannelFinder.js')
 load("../Common/HardwareBasic.js");
@@ -91,6 +95,8 @@ channelFinder = null;
 remoteHandlers = [];
 cursorTracks = [];
 cursorDevices = [];
+
+cursorTracksXtouch = [];
 
 twisterTrackSettings = [];
 
@@ -226,7 +232,7 @@ function init() {
       var track_handler = new TrackHandler(bank, cursor_track, HardwareXtouch, cc_min, cc_max);
       
       banks.push(bank); 
-      cursorTracks.push(cursor_track);
+      cursorTracksXtouch.push(cursor_track);
       trackHandlers.push(track_handler); 
       MidiProcessesXtouch.push(track_handler);
    }
@@ -403,12 +409,12 @@ function settingBankSizeChanged(){}
 
 //Main track for xtouch...
 function settingMainTrackNameChanged(value){
-   channelFinder.find(cursorTracks[0], value);
+   channelFinder.find(cursorTracksXtouch[0], value);
    channelFinder.findTrackBank(banks[0], value);
 }
 
 //Resample track for xtouch...
 function settingResampleTrackNameChanged(value){
-   channelFinder.find(cursorTracks[1], value);
+   channelFinder.find(cursorTracksXtouch[1], value);
    channelFinder.findTrackBank(banks[1], value);
 }

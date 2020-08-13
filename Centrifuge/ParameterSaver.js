@@ -1,3 +1,7 @@
+// Written by Kirkwood West - kirkwoodwest.com
+// (c) 2020
+// Licensed under LGPLv3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+
 ParameterSaverInstance = null;
 const PARAMETER_SAVER_PRECISION = 4;
 
@@ -31,6 +35,7 @@ function ParameterSaver(hardware, bankSize, remoteHandlers) {
 
    this.clipEditEnabled = false; //This is a flag to determine if we are editing a clip for saving? //TODO: Is it needed?
    this.enabled_bool = false; //Whether or not the Parameter saving/morphing mode is enabled
+   this.init_leds = false;
   
    this.morph_parameters_a = [];
    this.morph_parameters_b = [];
@@ -244,6 +249,7 @@ ParameterSaver.prototype.setParameterValues = function(parameter_values){
       
       for(var cb = 0; cb < parameter_count; cb++) {
          var parameter_value = parameter_values[parameter_index];
+         if(parameter_value == NaN) continue; // skip parameter value setting
          var parameter = control_bank.getParameter(cb);
          parameter.value().set(parameter_value, 127);
          parameter_index++;
@@ -284,7 +290,7 @@ ParameterSaver.prototype.setMorphKnob = function(value, do_morph) {
 
 ParameterSaver.prototype.setMorphKnobInc = function(inc_value) {
    println('inc_value: ' + inc_value);
-   var inc_value_float = inc_value / 128 * -1;
+   var inc_value_float = inc_value / 127 * -1;
    var old_value = this.morph_knob_value;
    
    new_value = old_value - inc_value_float;
@@ -319,6 +325,7 @@ ParameterSaver.prototype.contentChanged = function(slot_index, has_clip){
 
 //Set enabled flag 
 ParameterSaver.prototype.enable = function(enabled_bool){
+   if (this.enabled_bool == false && enabled_bool == true) this.init_leds = true;
    this.enabled_bool = enabled_bool;
 }
 
@@ -340,15 +347,13 @@ ParameterSaver.prototype.updateLed = function(){
 
 
    //show values for knobs...
+   var status = 0xB0;//CC Status
+   var min_val = 33;
+   var max_val = 43;
+   var value = map_range(this.morph_knob_value, 0,1, min_val, max_val);
+   value = Math.round(value);
    for (var i = 0; i < XTOUCH_LED_KNOBS_LIST.length; i++){
-      var value = 0
-      var min_val = 33;
-      var max_val = 43;
       var cc = XTOUCH_LED_KNOBS_LIST[0] + i;
-      var status = 0xB0;//CC Status
-   
-      if(i==0 ) value = map_range(this.morph_knob_value, 0,1, min_val,max_val);
-      value = Math.round(value);
       this.hardware.sendMidi(status, cc, value);
    }
 
@@ -361,23 +366,28 @@ ParameterSaver.prototype.updateLed = function(){
       this.hardware.sendMidi(status, note, value);
    }
 
-   //Always lit buttons
-   var status = 0x90;
-   var note = XTOUCH_BTN_ROW_2[0];
-   var value = 127;
-   this.hardware.sendMidi(status, note, value);
 
-   note = XTOUCH_BTN_ROW_2[1];
-   this.hardware.sendMidi(status, note, value);
+   if (this.init_leds) {
+      //Remaining leds off
+      for(var i=2;i<XTOUCH_BTN_ROW_2.length;i++){
+         var note = XTOUCH_BTN_ROW_2[i];
+         var value = 0;
+         this.hardware.sendMidi(status, note, value);
+      }
 
-   //Remaining leds off
-   for(var i=2;i<XTOUCH_BTN_ROW_2.length;i++){
-      note = XTOUCH_BTN_ROW_2[i];
-      value = 0;
+      //Always lit buttons
+      var status = 0x90;
+      var note = XTOUCH_BTN_ROW_2[0];
+      var value = 127;
       this.hardware.sendMidi(status, note, value);
+
+      note = XTOUCH_BTN_ROW_2[1];
+      this.hardware.sendMidi(status, note, value);
+
+      note = XTOUCH_BTN_ROW_2[6];
+      this.hardware.sendMidi(status, note, value);
+      this.init_leds = false;
    }
-
-
    
    //Flow thru...
    return false;
@@ -400,7 +410,7 @@ ParameterSaver.prototype.handleTwisterMidi = function(status, data1, data2){
 
 
 ParameterSaver.prototype.handleXtouchMidi = function(status, data1, data2) {
-   debug_midi(status, data1, data2);
+
    //are we in the xtouch midi mode? 
    if (this.enabled_bool == false) return;
 
@@ -453,16 +463,28 @@ ParameterSaver.prototype.handleXtouchMidi = function(status, data1, data2) {
          return true;
       }
    }
+
+   //0xE8
+   
    if ( isChannelController(status) ) {
-
+      debug_midi(status, data1, data2, "xtouch");
       if(data1==XTOUCH_MAIN_CC_LIST[0]){
-         
-        // var data_mapped = floatToRange(data, 127);
-         
-         var value = data2 > 64 ? 64 - data2 : data2;
-         this.setMorphKnobInc(value, true);
-       //  track.volume().inc (value, 128);
+         var data_mapped = map_range(data2, 0, 127, 0, 1);
 
+         var value = data2 > 64 ? 64 - data2 : data2;
+         this.setMorphKnobInc(value);
+         return true;
+      } 
+   }
+
+   if ( isPitchBend(status) ) {
+
+      if(data1==0){
+         debug_midi(status, data1, data2, "xtouch");
+         var data_mapped = map_range(data2, 0, 127, 0, 1);
+         println('data2'+ data2);
+         println('data_mapped'+ data_mapped);
+         this.setMorphKnob(data_mapped, true);
          return true;
       } 
       //handle knob

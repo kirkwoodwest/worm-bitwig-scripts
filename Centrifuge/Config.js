@@ -1,3 +1,7 @@
+// Written by Kirkwood West - kirkwoodwest.com
+// (c) 2020
+// Licensed under LGPLv3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+
 //-----------------------------------------------------------------------------
 //TWISTER DATA
 TWISTER_TRACK_SETTINGS_NAMES   =   ["KICK1"   ,  "DRUM2"          ,  "TRACK3"  ,  "TRACK4"  ,  "TRACK5"  ,  "TRACK6"  ,  "TRACK7"  , "TRACK8"      ];

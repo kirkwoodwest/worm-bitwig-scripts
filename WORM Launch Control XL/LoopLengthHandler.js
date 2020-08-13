@@ -1,3 +1,6 @@
+// Written by Kirkwood West - kirkwoodwest.com
+// (c) 2020
+// Licensed under LGPLv3 - http://www.gnu.org/licenses/lgpl-3.0.txt
 function LoopLengthHandler(transport, hardware) {
    this.transport = transport;
    this.hardware = hardware;

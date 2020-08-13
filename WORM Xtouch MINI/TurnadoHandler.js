@@ -1,3 +1,7 @@
+// Written by Kirkwood West - kirkwoodwest.com
+// (c) 2020
+// Licensed under LGPLv3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+
 function TurnadoHandler (track_names, cc_list, hardware) {
    var follow_mode = CursorDeviceFollowMode.FIRST_DEVICE;
    this.track_names = track_names;

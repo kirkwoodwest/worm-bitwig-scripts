@@ -1,3 +1,7 @@
+// Written by Kirkwood West - kirkwoodwest.com
+// (c) 2020
+// Licensed under LGPLv3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+
 function ResamplerHandler(trackBank, cursorTrack, loop_length_handler, hardware, resample_btn, leds) {
     
    this.trackBank = trackBank;

@@ -1,3 +1,7 @@
+// Written by Kirkwood West - kirkwoodwest.com
+// (c) 2020
+// Licensed under LGPLv3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+
 //const XTOUCH_MIDI_CHANNEL = 11;
 //const XTOUCH_MAIN_CC = [1,8];
 //const XTOUCH_RESAMPLE_CC = [11,18];

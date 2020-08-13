@@ -1,3 +1,7 @@
+// Written by Kirkwood West - kirkwoodwest.com
+// (c) 2020
+// Licensed under LGPLv3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+
 load("Config.js")
 load('../WORM_UTILS/WORM_UTIL.js')
 load('../WORM_UTILS/ChannelFinder.js')
