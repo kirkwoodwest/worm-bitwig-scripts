@@ -67,6 +67,9 @@ LoopLengthHandler.prototype.handleFlush = function(){
          var bars_old = old_pos.split(':')[0];
          var beats_old = old_pos.split(':')[1];
    
+         //TODO: FIX this  diff_beats is the same as bars lol... and then verify 
+         //Maybe even post on the internet.
+         
          //Diff between the two positions against our traget record length
          var diff_bars = bars - bars_old;
          var diff_beats = bars - bars_old;
