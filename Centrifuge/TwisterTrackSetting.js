@@ -20,14 +20,13 @@ function TwisterTrackSetting (settings_id, target_channel_name, twister_id, curs
    this.target_channel_name = target_channel_name;
    this.channel_finder = channel_finder;
    this.cursor_track = cursor_track;
+
+   cursor_track.name().markInterested()
    this.trackBank = null;
 }
 
 //Move cursor 
 TwisterTrackSetting.prototype.retargetCursor = function() {
-   println('retarget cursor: ' + this.target_channel_name);
-   println('retarget cursor: ' + this.cursor_track);
-   println('--------')
    if (this.cursor_track) this.channel_finder.find(this.cursor_track, this.target_channel_name);
 }
 

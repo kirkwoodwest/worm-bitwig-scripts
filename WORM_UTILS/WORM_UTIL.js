@@ -34,12 +34,11 @@ function map_range(value, low1, high1, low2, high2) {
 function valBetween(val, min, max) {
   return (val > min) ? ((val < max) ? val : max) : min;
 }
-function makeIndexedFunction(index, f)
-{
-	return function(value)
-	{
-		f(index, value);
-	};
+function makeIndexedFunction(index, f) {
+  function indexedFunc(value) {
+    f(index, value);
+  }
+	return indexedFunc
 }
 
 function decimalToHex(decimal, chars) {

@@ -24,7 +24,7 @@ loadAPI(12);
 host.setShouldFailOnDeprecatedUse(true);
 
 //host.defineController("Kirkwood West", "Centrifuge", "0.9", "6564f3e3-616f-488d-8938-073be485c705", "Kirkwood West");
-host.defineController("Kirkwood West", "Centrifuge", "0.9.2", "b7917a2d-5375-41ff-8c9e-0dbd6412e0a1", "Kirkwood West");
+host.defineController("Kirkwood West", "CentrifugeJS", "0.9.2", "b7917a2d-5375-41ff-8c9e-0dbd6412e0a1", "Kirkwood West");
 
 host.defineMidiPorts(3, 3);
 
@@ -85,11 +85,6 @@ LauncherBankSize = 128;
 
 HardwareTwister = null //Controller Instance
 HardwareCirklon = null //Controller Instance
-
-
-
-
-paramSaver = null;
 
 channelFinder = null;
 remoteHandlers = [];
@@ -152,15 +147,15 @@ function init() {
 
    //START EMULATION
    for (var i=0; i< TWISTER_TRACK_SETTINGS_NAMES.length; i++){       
-      track_settings_name = TWISTER_TRACK_SETTINGS_NAMES[i];
-      controller_id = TWISTER_CONTROLLER_ID[i];
-      page_count = TWISTER_PAGE_COUNT[i];
-      twister_cc = TWISTER_CC[i];
-      twister_cc_min = twister_cc[0];
-      twister_cc_max = twister_cc[1];
+      var track_settings_name = TWISTER_TRACK_SETTINGS_NAMES[i];
+      var controller_id = TWISTER_CONTROLLER_ID[i];
+      var page_count = TWISTER_PAGE_COUNT[i];
+      var twister_cc = TWISTER_CC[i];
+      var twister_cc_min = twister_cc[0];
+      var twister_cc_max = twister_cc[1];
 
       //knob count
-      knob_count = twister_cc_max - twister_cc_min + 1
+      var knob_count = twister_cc_max - twister_cc_min + 1
       
       cursor_track_controller_id = controller_id + '_' + i;
       cursor_track = host.createCursorTrack("CURSOR_TRACK_" + i, track_settings_name, 0,0, false);
@@ -225,7 +220,8 @@ function init() {
    for (var i = 0; i < cursor_track_names.length; i++) {
       var bank = host.createTrackBank(8,0,0,true);
 
-      var cursor_track = host.createCursorTrack("CURSOR_TRACK_1", "Main", 0,0, false);
+      var cursor_track = host.createCursorTrack("XTOUCH_CURSOR_TRACK_1", "Main", 0,0, false);
+      cursor_track.name().markInterested()
       var cc_min = XTOUCH_MAIN_CC[0];
       var cc_max = XTOUCH_MAIN_CC[1];
    
@@ -270,12 +266,15 @@ function init() {
 
 // Called when a short MIDI message is received on MIDI input port 0.
 function onMidiTwister(status, data1, data2) {
+   //Param saver gets custom processing...
+   var stop_processing = parameterSaver.handleTwisterMidi(status,data1,data2);
+   if(stop_processing) return;
+
    for(i=0; i< MidiProcessesTwister.length; i++){
       stop_processing = MidiProcessesTwister[i].handleMidi(status, data1, data2);
       if(stop_processing) return;
    }
-   //Param saver gets custom processing...
-   paramSaver.handleTwisterMidi(status,data1,data2);
+
 }
 
 // Called when a short MIDI message is received on MIDI input port 1.
@@ -394,11 +393,13 @@ function rescanTracks(){
       twisterTrackSettings[i].retargetCursor();
    }
 
+ 
+
    //Xtouch Retarget
    //do nothing...
    mainTrackName = DocMainTrackSetting.get();
    settingMainTrackNameChanged(mainTrackName);
-
+ 
    resampleTrackName = DocResampleTrackSetting.get(); 
    settingResampleTrackNameChanged(resampleTrackName);
 
@@ -417,4 +418,11 @@ function settingMainTrackNameChanged(value){
 function settingResampleTrackNameChanged(value){
    channelFinder.find(cursorTracksXtouch[1], value);
    channelFinder.findTrackBank(banks[1], value);
+}
+
+function refreshTwisterKnobs(){
+   for(i=0; i< MidiProcessesTwister.length; i++){
+      stop_processing = MidiProcessesTwister[i].updateLed();
+      if(stop_processing) return;
+   }
 }

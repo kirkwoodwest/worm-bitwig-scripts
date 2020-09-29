@@ -75,18 +75,23 @@ ColorTrack.prototype.handleMidi = function(status, data1, data2){
    //Store Knob Values...
    var cc = parseInt(data1);
 
-   if (ColorTrackInstance.editEnabled) {
-      this.hardwareTwister.sendMidi(this.status, data1, data2);
-      ColorTrackInstance.colorValuesUpdate(cc, data2);
-   } else {
-      ColorTrackInstance.knobValuesUpdate(cc, data2);
-   }
-
-   //Deal with color track input...
-   if(isNoteOn(status)){
+    //Deal with color track input...
+    if(isNoteOn(status)){
       this.enableEditToggle = !this.enableEditToggle
       ColorTrackInstance.enableEdit(this.enableEditToggle);
    }
+
+   if (ColorTrackInstance.editEnabled) {
+      //TODO: probably should check if this is in range for the twisters before cancelling all other midi input.
+      this.hardwareTwister.sendMidi(this.status, data1, data2);
+      ColorTrackInstance.colorValuesUpdate(cc, data2);
+      return true;
+   } else {
+      //TODO: This could probably get killed but when returning to knob values go thru the params and update the respective knobs.
+      ColorTrackInstance.knobValuesUpdate(cc, data2);
+   }
+
+  
    //Normal knobs just go thru the game...
    return false;   
 }
@@ -97,9 +102,8 @@ ColorTrack.prototype.enableEdit = function(isEnabled){
       //Get colors from clip and send to twister knobs
       this.restoreKnobColorValues();
    } else {
-      //Restore Knob positions...
-      this.restoreKnobCCValues();
       this.writeData();
+      refreshTwisterKnobs();
    }
    this.editEnabled = isEnabled;
 }
@@ -113,7 +117,7 @@ ColorTrack.prototype.randomizeColors = function() {
       this.mft_color_values[i] = Math.floor(Math.random() *127);
    }
 
-   var channel = 1;
+   var channel = TWISTER_COLOR_MIDI_CHANNEL;
    
    var index = 0;
    for(var cc = this.cc_min; cc<=this.cc_max.length;cc++){
@@ -159,7 +163,6 @@ ColorTrack.prototype.readData = function() {
      // host.scheduleTask(doObject(this, this.readData), RESTART_DOCUMENT_CHANNEL_SEARCH_TIME); 
       return;
    }
-
 
    var playing_slot = this.bank_content_slots[this.playingSlotIndex]
    var playing_slot_name = this.clip_names[this.playingSlotIndex];
@@ -233,6 +236,7 @@ ColorTrack.prototype.restoreKnobValues = function(value_array) {
    var index = 0;
    for(var cc = this.cc_min; cc<=this.cc_max;cc++){
       this.hardwareTwister.sendMidi(status, cc, value_array[index]);
+      println('restor knob value: ' + status + ' : ' + cc + ' : ' + value_array[index])
       index++;
    }
 }
@@ -254,4 +258,9 @@ ColorTrack.prototype.getCursorTrack = function(){
 ColorTrack.prototype.getTrackBank = function(){
    return this.trackBank;
 }
+
+ColorTrack.prototype.updateLed = function(){
+   //do nothing
+}
+
 

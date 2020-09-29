@@ -101,3 +101,14 @@ RemoteControlHandler.prototype.getRemoteControlsBank = function(){
 RemoteControlHandler.prototype.getCCList = function(){
    return this.cc_list;
 }
+
+RemoteControlHandler.prototype.updateLed = function(){
+   for(var i=0;i<this.remoteControlsBank.getParameterCount();i++){
+      var cc = this.cc_list[i];
+      var status = 0xB0;
+      var data1 = cc;
+      var data2 = Math.floor(this.remoteControlsBank.getParameter(i).value().get() * 127);
+      println('update led' + data1 + "   " + data2)
+      this.hardware_twister.sendMidi(status, data1, data2);
+   }
+}
